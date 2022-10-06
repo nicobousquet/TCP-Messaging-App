@@ -134,7 +134,7 @@ void helpMsg() {
     printf("- /join <channelName> to join a chat group <channelName>\n");
     printf("- /quit <channelName> to quit chat group <channelName>\n");
     printf("- /quit to disconnect\n");
-    printf("- /send <pseudo> <\"file_name\"> to send a file <file_name> to user <pseudo>\n");
+    printf("- /send <pseudo> <\"filename\"> to send a file <filename> to user <pseudo>\n");
 }
 
 
