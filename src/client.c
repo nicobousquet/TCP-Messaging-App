@@ -209,12 +209,12 @@ struct socket bindAndListen(char *listeningPort) {
 void downloadingFile(struct clientP2P *serverP2P) {
     /* receiving data of the file from client and saving it into a new file on our computer */
     /* creating directory where the received file will be stored */
-    if (mkdir("received_files", S_IRWXU | S_IRWXG | S_IRWXO) && errno != EEXIST) {
+    if (mkdir("inbox", S_IRWXU | S_IRWXG | S_IRWXO) && errno != EEXIST) {
         perror("mkdir:");
     }
     char filenameDst[MSG_LEN];
     /* creating the path of the received file */
-    sprintf(filenameDst, "received_files/%s", serverP2P->fileStruct.fileToReceive);
+    sprintf(filenameDst, "inbox/%s", serverP2P->fileStruct.fileToReceive);
     /* opening the file */
     int newFileFd = open(filenameDst, O_RDWR | O_CREAT | O_APPEND, S_IRWXU);
     if (newFileFd == -1) {
@@ -225,9 +225,9 @@ void downloadingFile(struct clientP2P *serverP2P) {
     long ret = 0, offset = 0;
     /* while we did not receive all the data of the file */
     while (offset != size) {
-        recv(serverP2P->socket.fd, &serverP2P->msgStruct, sizeof(struct message), 0);
+        recv(serverP2P->socket.fd, &serverP2P->msgStruct, sizeof(struct message), MSG_WAITALL);
         /* receiving file by frame of max 1024 bytes */
-        recv(serverP2P->socket.fd, serverP2P->buffer, serverP2P->msgStruct.payloadLen, 0);
+        recv(serverP2P->socket.fd, serverP2P->buffer, serverP2P->msgStruct.payloadLen, MSG_WAITALL);
         /* writing received data in a new file */
         if (-1 == (ret = write(newFileFd, serverP2P->buffer, serverP2P->msgStruct.payloadLen))) {
             perror("Writing in new file");
@@ -275,7 +275,7 @@ void bindListenAndAccept(struct client *client) {
 void receivingFile(struct clientP2P *serverP2P) {
     printf("Receiving the file...\n");
     /* receiving a first structure with the name of the file to receive */
-    if (recv(serverP2P->socket.fd, &serverP2P->msgStruct, sizeof(struct message), 0) <= 0) {
+    if (recv(serverP2P->socket.fd, &serverP2P->msgStruct, sizeof(struct message), MSG_WAITALL) <= 0) {
         perror("recv FILE_SEND");
         exit(EXIT_FAILURE);
     }
@@ -283,13 +283,13 @@ void receivingFile(struct clientP2P *serverP2P) {
      * file transfer is aborted */
     if (serverP2P->msgStruct.type == FILENAME) {
         printf("Error: file not sent\n");
-        sleep(2);
+        recv(serverP2P->socket.fd, serverP2P->buffer, 0, MSG_WAITALL);
         close(serverP2P->socket.fd);
         printf("Connection closed with %s\n", serverP2P->fileStruct.nickSender);
         return;
     }
     /* receiving the size of the file */
-    if (recv(serverP2P->socket.fd, serverP2P->buffer, serverP2P->msgStruct.payloadLen, 0) <= 0) {
+    if (recv(serverP2P->socket.fd, serverP2P->buffer, serverP2P->msgStruct.payloadLen, MSG_WAITALL) <= 0) {
         perror("recv file size");
         exit(EXIT_FAILURE);
     }
@@ -297,7 +297,7 @@ void receivingFile(struct clientP2P *serverP2P) {
     serverP2P->msgStruct.type = FILE_ACK;
     /* sending ack */
     send(serverP2P->socket.fd, &serverP2P->msgStruct, sizeof(struct message), 0);
-    sleep(2);
+    recv(serverP2P->socket.fd, serverP2P->buffer, 0, MSG_WAITALL);
     close(serverP2P->socket.fd);
     printf("Connection closed with %s\n", serverP2P->fileStruct.nickSender);
 }
@@ -307,7 +307,7 @@ int sendFile(struct clientP2P *clientP2P) {
     struct stat sb;
     stat(clientP2P->fileStruct.fileToSend, &sb);
     if (!S_ISREG(sb.st_mode)) {
-        printf("Invalid file\n");
+        printf("Invalid filename\n");
         clientP2P->msgStruct.type = FILENAME;
         send(clientP2P->socket.fd, &clientP2P->msgStruct, sizeof(struct message), 0);
         close(clientP2P->socket.fd);
@@ -318,7 +318,7 @@ int sendFile(struct clientP2P *clientP2P) {
     int fileFd = open(clientP2P->fileStruct.fileToSend, O_RDONLY);
     if (fileFd == -1) {
         if (errno == ENOENT) {
-            printf("Invalid file\n");
+            printf("Invalid filename\n");
             clientP2P->msgStruct.type = FILENAME;
             send(clientP2P->socket.fd, &clientP2P->msgStruct, sizeof(struct message), 0);
             close(clientP2P->socket.fd);
@@ -354,7 +354,7 @@ int sendFile(struct clientP2P *clientP2P) {
         }
         clientP2P->msgStruct.payloadLen = ret;
         sendMsg(clientP2P->socket.fd, &clientP2P->msgStruct, clientP2P->payload);
-        /* waiting data to be read by dest user */
+        /* waiting data to be read by dest user in the socket file*/
         usleep(1000);
         offset += ret;
         /* displaying progression bar while sending file */
@@ -502,7 +502,7 @@ void connectAndSendFile(struct clientP2P *clientP2P) {
         return;
     }
     /* receiving ack */
-    recv(clientP2P->socket.fd, &clientP2P->msgStruct, sizeof(struct message), 0);
+    recv(clientP2P->socket.fd, &clientP2P->msgStruct, sizeof(struct message), MSG_WAITALL);
     if (clientP2P->msgStruct.type == FILE_ACK) {
         printf("%s has received the file\n", clientP2P->fileStruct.nickReceiver);
     } else {
@@ -516,12 +516,12 @@ void connectAndSendFile(struct clientP2P *clientP2P) {
 /* processing data coming from the server */
 int fromServer(struct client *client) {
     /*Receiving structure*/
-    if (recv(client->socket.fd, &client->msgStruct, sizeof(struct message), 0) <= 0) {
+    if (recv(client->socket.fd, &client->msgStruct, sizeof(struct message), MSG_WAITALL) <= 0) {
         printf("Server has crashed\n");
         return 0;
     }
     /* Receiving message*/
-    if (client->msgStruct.payloadLen != 0 && recv(client->socket.fd, client->buffer, client->msgStruct.payloadLen, 0) <= 0) {
+    if (client->msgStruct.payloadLen != 0 && recv(client->socket.fd, client->buffer, client->msgStruct.payloadLen, MSG_WAITALL) <= 0) {
         perror("recv");
         return 0;
     }

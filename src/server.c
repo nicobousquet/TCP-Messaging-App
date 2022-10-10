@@ -114,9 +114,8 @@ int processRequest(int clientFd, struct server *server) {
     memset(&server->msgStruct, 0, sizeof(struct message));
     memset(server->buffer, 0, MSG_LEN);
     /* Receiving structure */
-    usleep(100000);
     /* if client disconnected */
-    if ((recv(clientFd, &server->msgStruct, sizeof(struct message), MSG_DONTWAIT)) <= 0) {
+    if ((recv(clientFd, &server->msgStruct, sizeof(struct message), MSG_WAITALL)) <= 0) {
         printf("client on socket %d has disconnected from server\n", clientFd);
         /* if user is in a chatroom
          * we remove the user from the chatroom
@@ -151,7 +150,7 @@ int processRequest(int clientFd, struct server *server) {
     }
     /* Receiving message */
     memset(server->buffer, 0, MSG_LEN);
-    if (server->msgStruct.payloadLen != 0 && recv(clientFd, server->buffer, server->msgStruct.payloadLen, 0) <= 0) {
+    if (server->msgStruct.payloadLen != 0 && recv(clientFd, server->buffer, server->msgStruct.payloadLen, MSG_WAITALL) <= 0) {
         perror("recv");
         return 1;
     }
