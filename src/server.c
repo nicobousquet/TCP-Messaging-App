@@ -553,7 +553,7 @@ _Noreturn void runServer(struct server *server) {
                 /* getting ip address and port number of the new connection */
                 socket.port = clientAddr.sin_port;
                 strcpy(socket.ipAddr, inet_ntoa(clientAddr.sin_addr));
-                printf("Connection to client succeeded on %s:%hu.\n", socket.ipAddr, socket.port);
+                printf("Client connected");
                 /* adding a new user */
                 char pseudo[NICK_LEN] = "";
                 time_t ltime;

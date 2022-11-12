@@ -275,8 +275,7 @@ void bindListenAndAccept(struct client *client) {
     getsockname(serverP2P->socket.fd, (struct sockaddr *) &client_addr, &len);
     inet_ntop(AF_INET, (struct sockaddr_in *) &client_addr, serverP2P->socket.ipAddr, 16);
     serverP2P->socket.port = ntohs(((struct sockaddr_in *) &client_addr)->sin_port);
-    printf("%s is now connected to you on %s:%hu\n", serverP2P->fileStruct.nickSender, serverP2P->socket.ipAddr,
-           serverP2P->socket.port);
+    printf("%s is now connected to you on\n", serverP2P->fileStruct.nickSender);
 }
 
 void receivingFile(struct clientP2P *serverP2P) {
