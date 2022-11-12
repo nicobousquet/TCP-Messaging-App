@@ -25,6 +25,7 @@ void fillMsg(struct client *client, char *nickSender, enum msgType type, char *i
     }
     client->msgStruct.payloadLen = strlen(client->payload);
 }
+
 /* Connecting to server socket */
 struct socket socketAndConnect(char *hostname, char *port) {
     struct socket sock;
@@ -43,7 +44,9 @@ struct socket socketAndConnect(char *hostname, char *port) {
         if (connect(sock.fd, rp->ai_addr, rp->ai_addrlen) != -1) {
             /* getting ip address and port of connection */
             struct sockaddr_in *sockAddrInPtr = (struct sockaddr_in *) rp->ai_addr;
-            sock.port = sockAddrInPtr->sin_port;
+            socklen_t len = sizeof(struct sockaddr_in);
+            getsockname(sock.fd, (struct sockaddr *) sockAddrInPtr, &len);
+            sock.port = ntohs(sockAddrInPtr->sin_port);
             strcpy(sock.ipAddr, inet_ntoa(sockAddrInPtr->sin_addr));
             break;
         }
@@ -109,7 +112,8 @@ int correctPseudo(char *newPseudo) {
     }
     unsigned long pseudoLength = strlen(newPseudo);
     /* checking length */
-    unsigned long correctPseudoLength = strspn(newPseudo, "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890");
+    unsigned long correctPseudoLength = strspn(newPseudo,
+                                               "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890");
     if (pseudoLength > NICK_LEN) {
         printf("Too long pseudo\n");
         return 0;
@@ -154,7 +158,8 @@ int correctChannelName(char *channelName) {
     }
     unsigned long channelLength = strlen(channelName);
     /* checking length */
-    unsigned long correct_channelLength = strspn(channelName, "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890");
+    unsigned long correct_channelLength = strspn(channelName,
+                                                 "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890");
     /* checking types of characters */
     if (correct_channelLength != channelLength) {
         printf("Channel name with non authorized characters, please only numbers and letters\n");
@@ -234,7 +239,7 @@ void downloadingFile(struct clientP2P *serverP2P) {
         }
         offset += ret;
         /* progress bar to show the advancement of downloading */
-        char progressBar[12] = {'[', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',']'};
+        char progressBar[12] = {'[', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', ']'};
         int progression = (int) (((double) offset / (double) size) * 100);
         for (int j = 1; j <= progression / 10; j++) {
             progressBar[j] = '#';
@@ -257,7 +262,8 @@ void bindListenAndAccept(struct client *client) {
     serverP2P->socket = bindAndListen(listeningPort);
     sprintf(serverP2P->payload, "%s:%hu", serverP2P->socket.ipAddr, serverP2P->socket.port);
     /* sending ip address and port for the client to connect */
-    fillMsg((struct client *) serverP2P, serverP2P->userPseudo, FILE_ACCEPT, serverP2P->fileStruct.nickSender, serverP2P->payload);
+    fillMsg((struct client *) serverP2P, serverP2P->userPseudo, FILE_ACCEPT, serverP2P->fileStruct.nickSender,
+            serverP2P->payload);
     sendMsg(client->socket.fd, &serverP2P->msgStruct, serverP2P->payload);
     struct sockaddr client_addr;
     memset(&client_addr, 0, sizeof(client_addr));
@@ -269,7 +275,8 @@ void bindListenAndAccept(struct client *client) {
     getsockname(serverP2P->socket.fd, (struct sockaddr *) &client_addr, &len);
     inet_ntop(AF_INET, (struct sockaddr_in *) &client_addr, serverP2P->socket.ipAddr, 16);
     serverP2P->socket.port = ntohs(((struct sockaddr_in *) &client_addr)->sin_port);
-    printf("%s is now connected with you on %s:%hu\n", serverP2P->fileStruct.nickSender, serverP2P->socket.ipAddr, serverP2P->socket.port);
+    printf("%s is now connected to you on %s:%hu\n", serverP2P->fileStruct.nickSender, serverP2P->socket.ipAddr,
+           serverP2P->socket.port);
 }
 
 void receivingFile(struct clientP2P *serverP2P) {
@@ -358,7 +365,8 @@ int sendFile(struct clientP2P *clientP2P) {
         usleep(1000);
         offset += ret;
         /* displaying progression bar while sending file */
-        char progressBar[12] = {'[', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',']'}; //barre de progression de l'envoi du fichier
+        char progressBar[12] = {'[', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+                                ']'}; //barre de progression de l'envoi du fichier
         int progression = (int) (((double) offset / (double) size) * 100);
         for (int j = 1; j <= progression / 10; j++) {
             progressBar[j] = '#';
@@ -495,7 +503,8 @@ void connectAndSendFile(struct clientP2P *clientP2P) {
     char *portNumber = strtok(NULL, "\n");
     /* connecting to the server */
     clientP2P->socket = socketAndConnect(ipAddr, portNumber);
-    printf("You are now connected with %s on %s:%hu\n", clientP2P->fileStruct.nickReceiver, clientP2P->socket.ipAddr, clientP2P->socket.port);
+    printf("You (%s:%hu) are now connected to %s (%s:%s)\n", clientP2P->socket.ipAddr,
+           clientP2P->socket.port, clientP2P->fileStruct.nickReceiver, ipAddr, portNumber);
     /* sending file */
     printf("Sending the file...\n");
     if (!sendFile(clientP2P)) {
@@ -521,7 +530,8 @@ int fromServer(struct client *client) {
         return 0;
     }
     /* Receiving message*/
-    if (client->msgStruct.payloadLen != 0 && recv(client->socket.fd, client->buffer, client->msgStruct.payloadLen, MSG_WAITALL) <= 0) {
+    if (client->msgStruct.payloadLen != 0 &&
+        recv(client->socket.fd, client->buffer, client->msgStruct.payloadLen, MSG_WAITALL) <= 0) {
         perror("recv");
         return 0;
     }
@@ -532,7 +542,8 @@ int fromServer(struct client *client) {
         client->logged = 1;
     } /* if receiving a file request */
     if (client->msgStruct.type == FILE_REQUEST) {
-        printf("[%s]: %s wants you to accept the transfer of the file named \"%s\". Do you accept ? [Y/N]\n", client->msgStruct.nickSender, client->msgStruct.infos, client->buffer);
+        printf("[%s]: %s wants you to accept the transfer of the file named \"%s\". Do you accept ? [Y/N]\n",
+               client->msgStruct.nickSender, client->msgStruct.infos, client->buffer);
         strcpy(client->serverP2P.fileStruct.fileToReceive, client->buffer);
         strcpy(client->serverP2P.fileStruct.nickSender, client->msgStruct.infos);
         while (1) {
@@ -629,7 +640,7 @@ int main(int argc, char *argv[]) {
     struct client *client = malloc(sizeof(struct client));
     memset(client, 0, sizeof(struct client));
     client->socket = socketAndConnect(hostname, port);
-    printf("Connected to server with address %s and port %hu\n", client->socket.ipAddr, client->socket.port);
+    printf("Client (%s:%hu) connected to server (%s:%s)\n", client->socket.ipAddr, client->socket.port, hostname, port);
     /* running client */
     if (!runClient(client)) {
         free(client);
