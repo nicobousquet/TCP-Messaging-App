@@ -272,10 +272,11 @@ void bindListenAndAccept(struct client *client) {
     if ((serverP2P->socket.fd = accept(serverP2P->socket.fd, &client_addr, &len)) == -1) {
         perror("Accept");
     }
-    getsockname(serverP2P->socket.fd, (struct sockaddr *) &client_addr, &len);
-    inet_ntop(AF_INET, (struct sockaddr_in *) &client_addr, serverP2P->socket.ipAddr, 16);
+    getpeername(serverP2P->socket.fd, (struct sockaddr *) &client_addr, &len);
+    strcpy(serverP2P->socket.ipAddr, inet_ntoa(((struct sockaddr_in *) &client_addr)->sin_addr));
     serverP2P->socket.port = ntohs(((struct sockaddr_in *) &client_addr)->sin_port);
-    printf("%s is now connected to you on\n", serverP2P->fileStruct.nickSender);
+    printf("%s (%s:%i) is now connected to you\n", serverP2P->fileStruct.nickSender, serverP2P->socket.ipAddr,
+           serverP2P->socket.port);
 }
 
 void receivingFile(struct clientP2P *serverP2P) {

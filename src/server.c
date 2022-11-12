@@ -544,16 +544,18 @@ _Noreturn void runServer(struct server *server) {
             /* If listening socket is active => accept new incoming connection */
             if (pollfds[i].fd == server->socket.fd && pollfds[i].revents & POLLIN) {
                 /* accept new connection and retrieve new socket file descriptor */
-                struct sockaddr_in clientAddr;
+                struct sockaddr clientAddr;
                 socklen_t size = sizeof(clientAddr);
                 struct socket socket;
-                if (-1 == (socket.fd = accept(server->socket.fd, (struct sockaddr *) &clientAddr, &size))) {
+                if (-1 == (socket.fd = accept(server->socket.fd, &clientAddr, &size))) {
                     perror("Accept");
                 }
                 /* getting ip address and port number of the new connection */
-                socket.port = clientAddr.sin_port;
-                strcpy(socket.ipAddr, inet_ntoa(clientAddr.sin_addr));
-                printf("Client connected");
+                getpeername(socket.fd, &clientAddr, &size);
+                struct sockaddr_in *sockaddrInPtr = (struct sockaddr_in *)&clientAddr;
+                socket.port = ntohs(sockaddrInPtr->sin_port);
+                strcpy(socket.ipAddr, inet_ntoa(sockaddrInPtr->sin_addr));
+                printf("Client (%s:%hu) connected.\n", socket.ipAddr, socket.port);
                 /* adding a new user */
                 char pseudo[NICK_LEN] = "";
                 time_t ltime;
