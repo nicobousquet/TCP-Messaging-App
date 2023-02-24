@@ -48,6 +48,7 @@ struct server {
     char buffer[MSG_LEN];
     chatroom_t *chatrooms[NB_CHATROOMS];
     user_t *users;
+    user_t *currentUser;
     struct socket socket;
 };
 
