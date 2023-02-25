@@ -40,10 +40,6 @@ void freeUser(struct server *server) {
     free(tmp);
 }
 
-typedef struct struct1 {
-    struct server *server;
-} struct1_t;
-
 typedef struct struct2 {
     struct server *server;
     char *name;
@@ -53,8 +49,7 @@ typedef struct struct2 {
 chatroom_t **getChatroomInServer(void *arg1, int arg2) {
     /* getting chatroom by user */
     if (arg2 == 0) {
-        struct1_t *ptr = (struct1_t *) arg1;
-        struct server *server = ptr->server;
+        struct server *server = (struct server *) arg1;
         for (int j = 0; j < NB_CHATROOMS; j++) {
             if (server->chatrooms[j] != NULL) {
                 for (int k = 0; k < NB_USERS; k++) {
@@ -196,8 +191,7 @@ void multicastCreate(struct server *server) {
     }
     /* if chatrooom's name does not exist yet */
     /* we remove the user from all the chatrooms he is in before creating a new chatroom */
-    struct1_t arg1 = {server};
-    chatroom_t **chatroom = getChatroomInServer((void *) &arg1, 0);
+    chatroom_t **chatroom = getChatroomInServer((void *) server, 0);
     if (chatroom != NULL) {
         user_t **user = getUserInChatroom(chatroom, server->currentUser);
         *user = NULL;
@@ -262,8 +256,7 @@ void multicastJoin(struct server *server) {
     chatroom_t **chatroom = getChatroomInServer((void *) &arg1, 1);
     /* if chatroom exists */
     if (chatroom != NULL) {
-        struct1_t arg = {server};
-        chatroom_t **userChatroom = getChatroomInServer((void *) &arg, 0);
+        chatroom_t **userChatroom = getChatroomInServer((void *) server, 0);
         /* if user is in a chatroom*/
         if (userChatroom != NULL) {
             /* if user is yet in the chatroom */
@@ -394,9 +387,8 @@ void multicastSend(struct server *server) {
         strcpy(server->payload, server->buffer);
         sendMsg(server->currentUser->socket.fd, &server->msgStruct, server->payload);
     } else {
-        struct1_t arg1 = {server};
         /* getting the chatroom the user wants to send the message in */
-        chatroom_t **chatroom = getChatroomInServer((void *) &arg1, 0);
+        chatroom_t **chatroom = getChatroomInServer((void *) server, 0);
         /* sending message to all the users in the chatroom */
         for (int l = 0; l < NB_USERS; l++) {
             if ((*chatroom)->users[l] != NULL) {
@@ -463,9 +455,8 @@ void disconnectUser(struct server *server) {
      * we remove the user from the chatroom
      */
     if (server->currentUser->inChatroom == 1) {
-        struct1_t arg1 = {server};
         /* getting the chatroom in which the user is */
-        chatroom_t **chatroom = getChatroomInServer((void *) &arg1, 0);
+        chatroom_t **chatroom = getChatroomInServer((void *) server, 0);
         /* getting the user in the chatroom */
         user_t **user = getUserInChatroom(chatroom, server->currentUser);
         /* removing the user in the chatroom */
@@ -521,7 +512,7 @@ int processRequest(struct server *server) {
         case NICKNAME_LIST:
             nicknameList(server);
             return 1;
-        /* if user wants to know ip address, connection port number and connection date of another user */
+        /* if user wants to know the ip address, remote port number and connection date of another user */
         case NICKNAME_INFOS:
             nicknameInfos(server);
             return 1;
