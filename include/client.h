@@ -4,6 +4,7 @@
 #define NFDS 2
 
 #include "common.h"
+#include <poll.h>
 
 struct fileExchange {
     char nickSender[NICK_LEN];

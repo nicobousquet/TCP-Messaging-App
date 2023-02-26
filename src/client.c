@@ -1,5 +1,4 @@
 #include "../include/client.h"
-#include <poll.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -629,23 +628,30 @@ int runClient(struct client *client) {
     }
 }
 
-int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        printf("Usage: ./client hostname portNumber\n");
-        exit(EXIT_FAILURE);
-    }
-    char *hostname = argv[1];
-    char *port = argv[2];
-    /* creating client socket and connecting it to server */
+struct client *clientInit(char* hostname, char *port) {
     struct client *client = malloc(sizeof(struct client));
     memset(client, 0, sizeof(struct client));
     client->socket = socketAndConnect(hostname, port);
     printf("Client (%s:%hu) connected to server (%s:%s)\n", client->socket.ipAddr, client->socket.port, hostname, port);
+    return client;
+}
+
+void usage(int argc) {
+    if (argc != 3) {
+        printf("Usage: ./client hostname portNumber\n");
+        exit(EXIT_FAILURE);
+    }
+}
+int main(int argc, char *argv[]) {
+    usage(argc);
+
+    struct client *client = clientInit(argv[1], argv[2]);
     /* running client */
     if (!runClient(client)) {
         free(client);
         exit(EXIT_FAILURE);
     }
+
     free(client);
     exit(EXIT_SUCCESS);
 }
