@@ -28,7 +28,7 @@ struct client {
     char buffer[MSG_LEN];
     struct socket socket;
     char userPseudo[NICK_LEN];
-    int logged;
+    int loggedIn;
     struct clientP2P clientP2P;
     struct clientP2P serverP2P;
 };

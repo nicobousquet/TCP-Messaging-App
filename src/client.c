@@ -103,29 +103,7 @@ enum msgType getMsgType(char *firstWord) {
     return DEFAULT;
 }
 
-/* checking if pseudo is correct */
-int correctPseudo(char *newPseudo) {
-    if (newPseudo == NULL) {
-        printf("Please, choose a pseudo !\n");
-        return 0;
-    }
-    unsigned long pseudoLength = strlen(newPseudo);
-    /* checking length */
-    unsigned long correctPseudoLength = strspn(newPseudo,
-                                               "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890");
-    if (pseudoLength > NICK_LEN) {
-        printf("Too long pseudo\n");
-        return 0;
-    }
-    /* checking types of characters */
-    if (correctPseudoLength != pseudoLength) {
-        printf("Pseudo with non authorized characters, please, only numbers and letters\n");
-        return 0;
-    }
-    return 1;
-}
-
-void helpMsg() {
+void help() {
     printf("            ****** HELP ******\n");
     printf("- /nick <pseudo> to change pseudo\n");
     printf("- /whois <pseudo> to have informations on user <pseudo>\n");
@@ -140,33 +118,6 @@ void helpMsg() {
     printf("- /send <pseudo> <\"filename\"> to send a file <filename> to user <pseudo>\n");
 }
 
-
-int unicastSendCorrect(const char *destUsername, const char *payloadTmp) {
-    if (destUsername == NULL || payloadTmp == NULL) {
-        printf("Invalid arguments\n");
-        return 0;
-    }
-    return 1;
-}
-
-/* checking if channel name is correct */
-int correctChannelName(char *channelName) {
-    if (channelName == NULL) {
-        printf("No channel name\n");
-        return 0;
-    }
-    unsigned long channelLength = strlen(channelName);
-    /* checking length */
-    unsigned long correct_channelLength = strspn(channelName,
-                                                 "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890");
-    /* checking types of characters */
-    if (correct_channelLength != channelLength) {
-        printf("Channel name with non authorized characters, please only numbers and letters\n");
-        return 0;
-    }
-    return 1;
-}
-
 /* disconnecting client from server */
 void disconnectFromServer(struct pollfd *pollfds) {
     for (int j = 0; j < NFDS; j++) {
@@ -176,14 +127,6 @@ void disconnectFromServer(struct pollfd *pollfds) {
         pollfds[j].revents = 0;
     }
     printf("You are disconnected\n");
-}
-
-int correctFileRequest(const char *user, const char *tmp) {
-    if (user == NULL || tmp == NULL) {
-        printf("Invalid arguments\n");
-        return 0;
-    }
-    return 1;
 }
 
 /* extracting name of file to send */
@@ -251,63 +194,6 @@ void downloadingFile(struct clientP2P *serverP2P) {
     }
     printf("File received successfully and saved in %s\n", filenameDst);
 }
-
-/* creating a server socket and waiting the client connects to send the file */
-void bindListenAndAccept(struct client *client) {
-    /* letting the computer choosing a listening port */
-    char listeningPort[INFOS_LEN] = "0";
-    /* creating a listening socket */
-    struct clientP2P *serverP2P = &client->serverP2P;
-    serverP2P->socket = bindAndListen(listeningPort);
-    sprintf(serverP2P->payload, "%s:%hu", serverP2P->socket.ipAddr, serverP2P->socket.port);
-    /* sending ip address and port for the client to connect */
-    fillMsg((struct client *) serverP2P, serverP2P->userPseudo, FILE_ACCEPT, serverP2P->fileStruct.nickSender,
-            serverP2P->payload);
-    sendMsg(client->socket.fd, &serverP2P->msgStruct, serverP2P->payload);
-    struct sockaddr client_addr;
-    memset(&client_addr, 0, sizeof(client_addr));
-    socklen_t len = sizeof(client_addr);
-    /* accepting connection from client */
-    if ((serverP2P->socket.fd = accept(serverP2P->socket.fd, &client_addr, &len)) == -1) {
-        perror("Accept");
-    }
-    getpeername(serverP2P->socket.fd, (struct sockaddr *) &client_addr, &len);
-    strcpy(serverP2P->socket.ipAddr, inet_ntoa(((struct sockaddr_in *) &client_addr)->sin_addr));
-    serverP2P->socket.port = ntohs(((struct sockaddr_in *) &client_addr)->sin_port);
-    printf("%s (%s:%i) is now connected to you\n", serverP2P->fileStruct.nickSender, serverP2P->socket.ipAddr,
-           serverP2P->socket.port);
-}
-
-void receivingFile(struct clientP2P *serverP2P) {
-    printf("Receiving the file...\n");
-    /* receiving a first structure with the name of the file to receive */
-    if (recv(serverP2P->socket.fd, &serverP2P->msgStruct, sizeof(struct message), MSG_WAITALL) <= 0) {
-        perror("recv FILE_SEND");
-        exit(EXIT_FAILURE);
-    }
-    /* if name of the file to send did not exist on the client computer
-     * file transfer is aborted */
-    if (serverP2P->msgStruct.type == FILENAME) {
-        printf("Error: file not sent\n");
-        recv(serverP2P->socket.fd, serverP2P->buffer, 0, MSG_WAITALL);
-        close(serverP2P->socket.fd);
-        printf("Connection closed with %s\n", serverP2P->fileStruct.nickSender);
-        return;
-    }
-    /* receiving the size of the file */
-    if (recv(serverP2P->socket.fd, serverP2P->buffer, serverP2P->msgStruct.payloadLen, MSG_WAITALL) <= 0) {
-        perror("recv file size");
-        exit(EXIT_FAILURE);
-    }
-    downloadingFile(serverP2P);
-    serverP2P->msgStruct.type = FILE_ACK;
-    /* sending ack */
-    send(serverP2P->socket.fd, &serverP2P->msgStruct, sizeof(struct message), 0);
-    recv(serverP2P->socket.fd, serverP2P->buffer, 0, MSG_WAITALL);
-    close(serverP2P->socket.fd);
-    printf("Connection closed with %s\n", serverP2P->fileStruct.nickSender);
-}
-
 
 int sendFile(struct clientP2P *clientP2P) {
     struct stat sb;
@@ -380,6 +266,138 @@ int sendFile(struct clientP2P *clientP2P) {
     return 1;
 }
 
+void nicknameNew(struct client *client, char *newPseudo) {
+    if (newPseudo == NULL) {
+        printf("Please, choose a pseudo !\n");
+        return;
+    }
+    unsigned long pseudoLength = strlen(newPseudo);
+    /* checking length */
+    unsigned long correctPseudoLength = strspn(newPseudo,"QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890");
+    if (pseudoLength > NICK_LEN) {
+        printf("Too long pseudo\n");
+        return;
+    }
+    /* checking types of characters */
+    if (correctPseudoLength != pseudoLength) {
+        printf("Pseudo with non authorized characters, please, only numbers and letters\n");
+        return;
+    }
+
+    fillMsg(client, client->userPseudo, NICKNAME_NEW, newPseudo, "\0");
+    sendMsg(client->socket.fd, &client->msgStruct, client->payload);
+    return;
+}
+
+void nicknameList(struct client *client) {
+    fillMsg(client, client->userPseudo, NICKNAME_LIST, "\0", "\0");
+    sendMsg(client->socket.fd, &client->msgStruct, client->payload);
+    return;
+}
+
+void nicknameInfos(struct client *client, char *username) {
+    fillMsg(client, client->userPseudo, NICKNAME_INFOS, username, "\0");
+    sendMsg(client->socket.fd, &client->msgStruct, client->payload);
+    return;
+}
+
+void broadcastSend(struct client *client, char *payload) {
+    fillMsg(client, client->userPseudo, BROADCAST_SEND, "\0", payload);
+    sendMsg(client->socket.fd, &client->msgStruct, client->payload);
+    return;
+}
+
+void unicastSend(struct client *client, char *destUsername, char *payload) {
+    /* checking dest user and payload are corrects */
+    if (destUsername == NULL || payload == NULL) {
+        printf("Invalid arguments\n");
+        return;
+    }
+
+    fillMsg(client, client->userPseudo, UNICAST_SEND, destUsername, payload);
+    sendMsg(client->socket.fd, &client->msgStruct, client->payload);
+    return;
+}
+
+void multicastCreate(struct client *client, char *channelName) {
+    if (channelName == NULL) {
+        printf("No channel name\n");
+        return;
+    }
+    unsigned long channelLength = strlen(channelName);
+    /* checking length */
+    unsigned long correct_channelLength = strspn(channelName,
+                                                 "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890");
+    /* checking types of characters */
+    if (correct_channelLength != channelLength) {
+        printf("Channel name with non authorized characters, please only numbers and letters\n");
+        return;
+    }
+
+    fillMsg(client, client->userPseudo, MULTICAST_CREATE, channelName, "\0");
+    sendMsg(client->socket.fd, &client->msgStruct, client->payload);
+    return;
+}
+
+void multicastList(struct client *client) {
+    fillMsg(client, client->userPseudo, MULTICAST_LIST, "\0", "\0");
+    sendMsg(client->socket.fd, &client->msgStruct, client->payload);
+    return;
+}
+
+void multicastJoin(struct client *client, char *chatroom) {
+    fillMsg(client, client->userPseudo, MULTICAST_JOIN, chatroom, "\0");
+    sendMsg(client->socket.fd, &client->msgStruct, client->payload);
+    return;
+}
+
+int quit(struct client *client, char *channelName) {
+    /* if channel name exists, quitting the channel */
+    if (channelName == NULL) {
+        /* quitting the server */
+        return 0;
+    }
+    fillMsg(client, client->userPseudo, MULTICAST_QUIT, channelName, "\0");
+    sendMsg(client->socket.fd, &client->msgStruct, client->payload);
+    return 1;
+}
+
+void fileRequest(struct client *client, char *dstUser, char *filename) {
+    /* getting path of file to send */
+    if (dstUser == NULL || filename == NULL) {
+        printf("Invalid arguments\n");
+        return;
+    }
+
+    struct clientP2P *clientP2P = &client->clientP2P;
+    strcpy(clientP2P->fileStruct.nickReceiver, dstUser);
+    strcpy(clientP2P->fileStruct.fileToSend, filename + 1);
+    clientP2P->fileStruct.fileToSend[strlen(clientP2P->fileStruct.fileToSend) - 1] = '\0';
+    /* extracting name of file to send from the path */
+    char tmp[MSG_LEN];
+    strcpy(tmp, clientP2P->fileStruct.fileToSend);
+    char subPath[MSG_LEN];
+    extractFilename(tmp, subPath);
+    /* writing only name of file to send and not the whole path into the payload */
+    fillMsg(client, client->userPseudo, FILE_REQUEST, clientP2P->fileStruct.nickReceiver, subPath);
+    sendMsg(client->socket.fd, &client->msgStruct, client->payload);
+    /* Sending structure and payload */
+    printf("File request sent to %s\n", client->clientP2P.fileStruct.nickReceiver);
+    return;
+}
+
+void multicastSend(struct client *client, char *phrase, char *firstWord) {
+    if (phrase != NULL) {
+        sprintf(client->payload + strlen(client->payload), "%s %s", firstWord, phrase);
+    } else {
+        strcpy(client->payload, firstWord);
+    }
+
+    fillMsg(client, client->userPseudo, MULTICAST_SEND, "\0", client->payload);
+    sendMsg(client->socket.fd, &client->msgStruct, client->payload);
+    return;
+}
+
 /* processing data entered from keyboard */
 int fromStdIn(struct client *client) {
     /* putting data into buffer */
@@ -398,101 +416,65 @@ int fromStdIn(struct client *client) {
     /* getting type of message */
     enum msgType msgType = getMsgType(firstWord);
     /* asking user to log in first */
-    if (msgType != NICKNAME_NEW && client->logged == 0) {
+    if (msgType != NICKNAME_NEW && client->loggedIn == 0) {
         printf("Please, login with /nick <your pseudo>\n");
         return 1;
-    } /* /nick <pseudo> */
+    }
+
+    /* /nick <pseudo> */
     if (msgType == NICKNAME_NEW) {
-        char *newPseudo = strtok(NULL, " ");
-        if (!correctPseudo(newPseudo)) {
-            return 1;
-        }
-        fillMsg(client, client->userPseudo, msgType, newPseudo, "\0");
+        nicknameNew(client, strtok(NULL, " "));
+        return 1;
     } /* /help */
     else if (msgType == HELP) {
-        helpMsg();
+        help();
         return 1;
     } /* /who */
     else if (msgType == NICKNAME_LIST) {
-        fillMsg(client, client->userPseudo, msgType, "\0", "\0");
+        nicknameList(client);
+        return 1;
     } /* /whois <user> */
     else if (msgType == NICKNAME_INFOS) {
-        fillMsg(client, client->userPseudo, msgType, strtok(NULL, ""), "\0");
+        nicknameInfos(client, strtok(NULL, ""));
+        return 1;
     } /* /msgall msg */
     else if (msgType == BROADCAST_SEND) {
-        fillMsg(client, client->userPseudo, msgType, "\0", strtok(NULL, ""));
+        broadcastSend(client, strtok(NULL, ""));
+        return 1;
     } /* /msg <user> msg */
     else if (msgType == UNICAST_SEND) {
-        /* getting dest user */
         char *destUsername = strtok(NULL, " ");
-        /* getting payload */
-        char *payloadTmp = strtok(NULL, "");
-        /* checking dest user and payload are corrects */
-        if (!unicastSendCorrect(destUsername, payloadTmp)) {
-            return 1;
-        }
-        fillMsg(client, client->userPseudo, msgType, destUsername, payloadTmp);
+        char *payload = strtok(NULL, "");
+        unicastSend(client, destUsername, payload);
+        return 1;
     } /* /create <channel name> */
     else if (msgType == MULTICAST_CREATE) {
-        /* getting channel name */
-        char *channelName = strtok(NULL, "");
-        if (!correctChannelName(channelName)) {
-            return 1;
-        }
-        fillMsg(client, client->userPseudo, msgType, channelName, "\0");
+        multicastCreate(client, strtok(NULL, ""));
+        return 1;
     } /* /channel_list */
     else if (msgType == MULTICAST_LIST) {
-        fillMsg(client, client->userPseudo, msgType, "\0", "\0");
+        multicastList(client);
+        return 1;
     } /* /join <channel name> */
     else if (msgType == MULTICAST_JOIN) {
-        fillMsg(client, client->userPseudo, msgType, strtok(NULL, ""), "\0");
+        multicastJoin(client, strtok(NULL, ""));
+        return 1;
     } /* /quit <channel name> */
     else if (msgType == QUIT) {
-        /* getting channel name */
-        char *channelName = strtok(NULL, "");
-        /* if channel name exists, quitting the channel */
-        if (channelName != NULL) {
-            fillMsg(client, client->userPseudo, MULTICAST_QUIT, channelName, "\0");
-        } else {
-            /* quitting the server */
+        if (!quit(client, strtok(NULL, ""))) {
             return 0;
         }
+        return 1;
     } /* /send <user> "file" */
     else if (msgType == FILE_REQUEST) {
-        /* getting user to send the file to */
-        char *dstUser = strtok(NULL, " ");
-        char *filename = strtok(NULL, "");
-        /* getting path of file to send */
-        if (!correctFileRequest(dstUser, filename)) {
-            return 1;
-        }
-        struct clientP2P *clientP2P = &client->clientP2P;
-        strcpy(clientP2P->fileStruct.nickReceiver, dstUser);
-        strcpy(clientP2P->fileStruct.fileToSend, filename + 1);
-        clientP2P->fileStruct.fileToSend[strlen(clientP2P->fileStruct.fileToSend) - 1] = '\0';
-        /* extracting name of file to send from the path */
-        char tmp[MSG_LEN];
-        strcpy(tmp, clientP2P->fileStruct.fileToSend);
-        char subPath[MSG_LEN];
-        extractFilename(tmp, subPath);
-        /* writing only name of file to send and not the whole path into the payload */
-        fillMsg(client, client->userPseudo, msgType, clientP2P->fileStruct.nickReceiver, subPath);
+        char *destUser = strtok(NULL, " ");
+        char *filenamme = strtok(NULL, "");
+        fileRequest(client, destUser, filenamme);
+        return 1;
     } else {
-        /* sending the whole line to the server */
-        char *phrase = strtok(NULL, "");
-        if (phrase != NULL) {
-            sprintf(client->payload + strlen(client->payload), "%s %s", firstWord, phrase);
-        } else {
-            strcpy(client->payload, firstWord);
-        }
-        fillMsg(client, client->userPseudo, MULTICAST_SEND, "\0", client->payload);
+        multicastSend(client, strtok(NULL, ""), firstWord);
+        return 1;
     }
-    /* Sending structure and payload */
-    sendMsg(client->socket.fd, &client->msgStruct, client->payload);
-    if (msgType == FILE_REQUEST) {
-        printf("File request sent to %s\n", client->clientP2P.fileStruct.nickReceiver);
-    }
-    return 1;
 }
 
 /* connecting to the server and sending file */
@@ -521,6 +503,69 @@ void connectAndSendFile(struct clientP2P *clientP2P) {
     printf("Connection closed with %s\n", clientP2P->fileStruct.nickReceiver);
 }
 
+void fileAccept(struct client *client) {
+    /* letting the computer choosing a listening port */
+    char listeningPort[INFOS_LEN] = "0";
+    /* creating a listening socket */
+    struct clientP2P *serverP2P = &client->serverP2P;
+    serverP2P->socket = bindAndListen(listeningPort);
+    sprintf(serverP2P->payload, "%s:%hu", serverP2P->socket.ipAddr, serverP2P->socket.port);
+    /* sending ip address and port for the client to connect */
+    fillMsg((struct client *) serverP2P, serverP2P->userPseudo, FILE_ACCEPT, serverP2P->fileStruct.nickSender,
+            serverP2P->payload);
+    sendMsg(client->socket.fd, &serverP2P->msgStruct, serverP2P->payload);
+    struct sockaddr client_addr;
+    memset(&client_addr, 0, sizeof(client_addr));
+    socklen_t len = sizeof(client_addr);
+    /* accepting connection from client */
+    if ((serverP2P->socket.fd = accept(serverP2P->socket.fd, &client_addr, &len)) == -1) {
+        perror("Accept");
+    }
+    getpeername(serverP2P->socket.fd, (struct sockaddr *) &client_addr, &len);
+    strcpy(serverP2P->socket.ipAddr, inet_ntoa(((struct sockaddr_in *) &client_addr)->sin_addr));
+    serverP2P->socket.port = ntohs(((struct sockaddr_in *) &client_addr)->sin_port);
+    printf("%s (%s:%i) is now connected to you\n", serverP2P->fileStruct.nickSender, serverP2P->socket.ipAddr,
+           serverP2P->socket.port);
+    /* receiving file */
+    printf("You accepted the file transfer\n");
+
+    printf("Receiving the file...\n");
+    /* receiving a first structure with the name of the file to receive */
+    if (recv(serverP2P->socket.fd, &serverP2P->msgStruct, sizeof(struct message), MSG_WAITALL) <= 0) {
+        perror("recv FILE_SEND");
+        exit(EXIT_FAILURE);
+    }
+    /* if name of the file to send did not exist on the client computer
+     * file transfer is aborted */
+    if (serverP2P->msgStruct.type == FILENAME) {
+        printf("Error: file not sent\n");
+        recv(serverP2P->socket.fd, serverP2P->buffer, 0, MSG_WAITALL);
+        close(serverP2P->socket.fd);
+        printf("Connection closed with %s\n", serverP2P->fileStruct.nickSender);
+        return;
+    }
+    /* receiving the size of the file */
+    if (recv(serverP2P->socket.fd, serverP2P->buffer, serverP2P->msgStruct.payloadLen, MSG_WAITALL) <= 0) {
+        perror("recv file size");
+        exit(EXIT_FAILURE);
+    }
+    downloadingFile(serverP2P);
+    serverP2P->msgStruct.type = FILE_ACK;
+    /* sending ack */
+    send(serverP2P->socket.fd, &serverP2P->msgStruct, sizeof(struct message), 0);
+    recv(serverP2P->socket.fd, serverP2P->buffer, 0, MSG_WAITALL);
+    close(serverP2P->socket.fd);
+    printf("Connection closed with %s\n", serverP2P->fileStruct.nickSender);
+    return;
+}
+
+void fileReject(struct client *client) {
+    fillMsg(client, client->userPseudo, FILE_REJECT, client->msgStruct.infos, client->buffer);
+    /* Sending structure and payload */
+    sendMsg(client->socket.fd, &client->msgStruct, client->payload);
+    printf("You rejected the file transfer\n");
+}
+
 /* processing data coming from the server */
 int fromServer(struct client *client) {
     /*Receiving structure*/
@@ -529,8 +574,7 @@ int fromServer(struct client *client) {
         return 0;
     }
     /* Receiving message*/
-    if (client->msgStruct.payloadLen != 0 &&
-        recv(client->socket.fd, client->buffer, client->msgStruct.payloadLen, MSG_WAITALL) <= 0) {
+    if (client->msgStruct.payloadLen != 0 && recv(client->socket.fd, client->buffer, client->msgStruct.payloadLen, MSG_WAITALL) <= 0) {
         perror("recv");
         return 0;
     }
@@ -538,7 +582,7 @@ int fromServer(struct client *client) {
     if (client->msgStruct.type == NICKNAME_NEW) {
         strcpy(client->userPseudo, client->msgStruct.infos);
         /* user logged in */
-        client->logged = 1;
+        client->loggedIn = 1;
     } /* if receiving a file request */
     if (client->msgStruct.type == FILE_REQUEST) {
         printf("[%s]: %s wants you to accept the transfer of the file named \"%s\". Do you accept ? [Y/N]\n",
@@ -554,19 +598,12 @@ int fromServer(struct client *client) {
             /* move to the beginning of previous line */
             printf("\033[1A\33[2K\r");
             fflush(stdout);
-            enum msgType P2Presponse = getMsgType(client->buffer);
-            if (P2Presponse == FILE_ACCEPT) {
-                printf("You accepted the file transfer\n");
-                /* creating P2P socket and accepting connection to receive file */
-                bindListenAndAccept(client);
-                /* receiving file */
-                receivingFile(&client->serverP2P);
+            enum msgType P2PresponseType = getMsgType(client->buffer);
+            if (P2PresponseType == FILE_ACCEPT) {
+                fileAccept(client);
                 return 1;
-            } else if (P2Presponse == FILE_REJECT) {
-                fillMsg(client, client->userPseudo, FILE_REJECT, client->msgStruct.infos, client->buffer);
-                /* Sending structure and payload */
-                sendMsg(client->socket.fd, &client->msgStruct, client->payload);
-                printf("You rejected the file transfer\n");
+            } else if (P2PresponseType == FILE_REJECT) {
+                fileReject(client);
                 return 1;
             } else {
                 printf("Please only Y or N !\n");
