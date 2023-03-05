@@ -59,50 +59,6 @@ struct socket socketAndConnect(char *hostname, char *port) {
     return sock;
 }
 
-/* returns type of message depending on command entered by the user */
-enum msgType getMsgType(char *firstWord) {
-    const char *commands[] = {
-            "/nick",
-            "/help",
-            "/who",
-            "/whois",
-            "/msgall",
-            "/msg",
-            "/create",
-            "/channel_list",
-            "/join",
-            "/quit",
-            "/send",
-            "Y",
-            "y",
-            "N",
-            "n"
-    };
-    const enum msgType types[] = {
-            NICKNAME_NEW,
-            HELP,
-            NICKNAME_LIST,
-            NICKNAME_INFOS,
-            BROADCAST_SEND,
-            UNICAST_SEND,
-            MULTICAST_CREATE,
-            MULTICAST_LIST,
-            MULTICAST_JOIN,
-            QUIT,
-            FILE_REQUEST,
-            FILE_ACCEPT,
-            FILE_ACCEPT,
-            FILE_REJECT,
-            FILE_REJECT
-    };
-    for (int i = 0; i < (int) (sizeof(types) / sizeof(enum msgType)); i++) {
-        if (strcmp(firstWord, commands[i]) == 0) {
-            return types[i];
-        }
-    }
-    return DEFAULT;
-}
-
 /* disconnecting client from server */
 void disconnectFromServer(struct pollfd *pollfds) {
     for (int j = 0; j < NFDS; j++) {
@@ -291,75 +247,61 @@ int fromStdIn(struct client *client) {
     /* move to the beginning of previous line */
     printf("\033[1A\33[2K\r");
     fflush(stdout);
+
     /* getting command entered by user */
     char *firstWord = strtok(client->buffer, " ");
     if (firstWord == NULL) {
         return 1;
     }
-    /* getting type of message */
-    enum msgType msgType = getMsgType(firstWord);
+
     /* asking user to log in first */
-    if (msgType != NICKNAME_NEW && client->loggedIn == 0) {
+    if (strcmp(firstWord, "/nick") != 0 && client->loggedIn == 0) {
         printf("Please, login with /nick <your pseudo>\n");
         return 1;
     }
 
-    switch (msgType) {
-        /* /nick <pseudo> */
-        case NICKNAME_NEW:
-            nicknameNew(client, strtok(NULL, " "));
-            return 1;
-        /* /help */
-        case HELP:
-            help();
-            return 1;
-        /* /who */
-        case NICKNAME_LIST:
-            nicknameList(client);
-            return 1;
-        /* /whois <user> */
-        case NICKNAME_INFOS:
-            nicknameInfos(client, strtok(NULL, ""));
-            return 1;
-        /* /msgall msg */
-        case BROADCAST_SEND:
-            broadcastSend(client, strtok(NULL, ""));
-            return 1;
-        /* /msg <user> msg */
-        case UNICAST_SEND: {
-            char *destUsername = strtok(NULL, " ");
-            char *payload = strtok(NULL, "");
-            unicastSend(client, destUsername, payload);
-            return 1;
+    if (strcmp(firstWord, "/nick") == 0) {
+        nicknameNew(client, strtok(NULL, " "));
+        return 1;
+    } else if (strcmp(firstWord, "/help") == 0) {
+        help();
+        return 1;
+    } else if (strcmp(firstWord, "/who") == 0) {
+        nicknameList(client);
+        return 1;
+    } else if (strcmp(firstWord, "/whois") == 0) {
+        nicknameInfos(client, strtok(NULL, ""));
+        return 1;
+    } else if (strcmp(firstWord, "/msgall") == 0) {
+        broadcastSend(client, strtok(NULL, ""));
+        return 1;
+    } else if (strcmp(firstWord, "/msg") == 0) {
+        char *destUsername = strtok(NULL, " ");
+        char *payload = strtok(NULL, "");
+        unicastSend(client, destUsername, payload);
+        return 1;
+    } else if (strcmp(firstWord, "/create") == 0) {
+        multicastCreate(client, strtok(NULL, ""));
+        return 1;
+    } else if (strcmp(firstWord, "/channel_list") == 0) {
+        multicastList(client);
+        return 1;
+    } else if (strcmp(firstWord, "/join") == 0) {
+        multicastJoin(client, strtok(NULL, ""));
+        return 1;
+    } else if (strcmp(firstWord, "/quit") == 0) {
+        if (!quit(client, strtok(NULL, ""))) {
+            return 0;
         }
-        /* /create <channel name> */
-        case MULTICAST_CREATE:
-            multicastCreate(client, strtok(NULL, ""));
-            return 1;
-        /* /channel_list */
-        case MULTICAST_LIST:
-            multicastList(client);
-            return 1;
-        /* /join <channel name> */
-        case MULTICAST_JOIN:
-            multicastJoin(client, strtok(NULL, ""));
-            return 1;
-        /* /quit <channel name> */
-        case QUIT:
-            if (!quit(client, strtok(NULL, ""))) {
-                return 0;
-            }
-            return 1;
-        /* /send <user> "file" */
-        case FILE_REQUEST: {
-            char *destUser = strtok(NULL, " ");
-            char *filenamme = strtok(NULL, "");
-            fileRequest(client, destUser, filenamme);
-            return 1;
-        }
-        default:
-            multicastSend(client, strtok(NULL, ""), firstWord);
-            return 1;
+        return 1;
+    } else if (strcmp(firstWord, "/send") == 0) {
+        char *destUser = strtok(NULL, " ");
+        char *filenamme = strtok(NULL, "");
+        fileRequest(client, destUser, filenamme);
+        return 1;
+    } else {
+        multicastSend(client, strtok(NULL, ""), firstWord);
+        return 1;
     }
 }
 
@@ -491,20 +433,15 @@ void fileRequestFromServer(struct client *client) {
         printf("\033[1A\33[2K\r");
         fflush(stdout);
 
-        enum msgType fileRequestResponse = getMsgType(client->buffer);
-
-        switch (fileRequestResponse) {
-            /* user types Y */
-            case FILE_ACCEPT:
-                fileAcceptFromStdIn(client, client->msgStruct.infos, client->buffer);
-                return;
-            /* user types N */
-            case FILE_REJECT:
-                fileReject(client);
-                return;
-            default:
-                printf("Please only Y or N !\n");
-                break;
+        if (strcmp(client->buffer, "Y") == 0 || strcmp(client->buffer, "y") == 0) {
+            fileAcceptFromStdIn(client, client->msgStruct.infos, client->buffer);
+            return;
+        } else if (strcmp(client->buffer, "N") == 0 || strcmp(client->buffer, "n") == 0) {
+            fileReject(client);
+            return;
+        } else {
+            printf("Please only Y or N !\n");
+            break;
         }
     }
 }
