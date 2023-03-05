@@ -25,73 +25,6 @@ void fillMsg(struct client *client, char *nickSender, enum msgType type, char *i
     client->msgStruct.payloadLen = strlen(client->payload);
 }
 
-/* Connecting to server socket */
-struct socket socketAndConnect(char *hostname, char *port) {
-    struct socket sock;
-    struct addrinfo hints, *result, *rp;
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_socktype = SOCK_STREAM;
-    if (getaddrinfo(hostname, port, &hints, &result) != 0) {
-        perror("getaddrinfo()");
-        exit(EXIT_FAILURE);
-    }
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
-        sock.fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-        if (sock.fd == -1) {
-            continue;
-        }
-        if (connect(sock.fd, rp->ai_addr, rp->ai_addrlen) != -1) {
-            /* getting ip address and port of connection */
-            struct sockaddr_in *sockAddrInPtr = (struct sockaddr_in *) rp->ai_addr;
-            socklen_t len = sizeof(struct sockaddr_in);
-            getsockname(sock.fd, (struct sockaddr *) sockAddrInPtr, &len);
-            sock.port = ntohs(sockAddrInPtr->sin_port);
-            strcpy(sock.ipAddr, inet_ntoa(sockAddrInPtr->sin_addr));
-            break;
-        }
-        close(sock.fd);
-    }
-    if (rp == NULL) {
-        perror("connect()");
-        exit(EXIT_FAILURE);
-    }
-    freeaddrinfo(result);
-    return sock;
-}
-
-/* disconnecting client from server */
-void disconnectFromServer(struct pollfd *pollfds) {
-    for (int j = 0; j < NFDS; j++) {
-        close(pollfds[j].fd);
-        pollfds[j].fd = -1;
-        pollfds[j].events = 0;
-        pollfds[j].revents = 0;
-    }
-    printf("You are disconnected\n");
-}
-
-/* extracting name of file to send */
-void extractFilename(char *tmp, char *subPath) {
-    tmp = strtok(tmp, "/");
-    strcpy(subPath, tmp);
-    /* extracting the name of the file from the whole path */
-    while ((tmp = strtok(NULL, "/")) != NULL) {
-        memset(subPath, 0, NICK_LEN);
-        strcpy(subPath, tmp);
-    }
-}
-
-/* creation of a server socket */
-struct socket bindAndListen(char *listeningPort) {
-    struct socket serverSocket = socketAndBind(listeningPort);
-    if ((listen(serverSocket.fd, SOMAXCONN)) != 0) {
-        perror("listen()\n");
-        exit(EXIT_FAILURE);
-    }
-    printf("Listening on %s:%hu\n", serverSocket.ipAddr, serverSocket.port);
-    return serverSocket;
-}
-
 void nicknameNew(struct client *client, char *newPseudo) {
     if (newPseudo == NULL) {
         printf("Please, choose a pseudo !\n");
@@ -203,6 +136,17 @@ int quit(struct client *client, char *channelName) {
     return 1;
 }
 
+/* extracting name of file to send */
+void extractFilename(char *tmp, char *subPath) {
+    tmp = strtok(tmp, "/");
+    strcpy(subPath, tmp);
+    /* extracting the name of the file from the whole path */
+    while ((tmp = strtok(NULL, "/")) != NULL) {
+        memset(subPath, 0, NICK_LEN);
+        strcpy(subPath, tmp);
+    }
+}
+
 void fileRequest(struct client *client, char *dstUser, char *filename) {
     /* getting path of file to send */
     if (dstUser == NULL || filename == NULL) {
@@ -309,6 +253,17 @@ void nicknameNewFromServer(struct client *client) {
     strcpy(client->userPseudo, client->msgStruct.infos);
     /* user logged in */
     client->loggedIn = 1;
+}
+
+/* creation of a server socket */
+struct socket bindAndListen(char *listeningPort) {
+    struct socket serverSocket = socketAndBind(listeningPort);
+    if ((listen(serverSocket.fd, SOMAXCONN)) != 0) {
+        perror("listen()\n");
+        exit(EXIT_FAILURE);
+    }
+    printf("Listening on %s:%hu\n", serverSocket.ipAddr, serverSocket.port);
+    return serverSocket;
 }
 
 void fileAcceptFromStdIn(struct client *client, char *fileSender, char *fileToReceive) {
@@ -446,6 +401,40 @@ void fileRequestFromServer(struct client *client) {
     }
 }
 
+/* Connecting to server socket */
+struct socket socketAndConnect(char *hostname, char *port) {
+    struct socket sock;
+    struct addrinfo hints, *result, *rp;
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_socktype = SOCK_STREAM;
+    if (getaddrinfo(hostname, port, &hints, &result) != 0) {
+        perror("getaddrinfo()");
+        exit(EXIT_FAILURE);
+    }
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+        sock.fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (sock.fd == -1) {
+            continue;
+        }
+        if (connect(sock.fd, rp->ai_addr, rp->ai_addrlen) != -1) {
+            /* getting ip address and port of connection */
+            struct sockaddr_in *sockAddrInPtr = (struct sockaddr_in *) rp->ai_addr;
+            socklen_t len = sizeof(struct sockaddr_in);
+            getsockname(sock.fd, (struct sockaddr *) sockAddrInPtr, &len);
+            sock.port = ntohs(sockAddrInPtr->sin_port);
+            strcpy(sock.ipAddr, inet_ntoa(sockAddrInPtr->sin_addr));
+            break;
+        }
+        close(sock.fd);
+    }
+    if (rp == NULL) {
+        perror("connect()");
+        exit(EXIT_FAILURE);
+    }
+    freeaddrinfo(result);
+    return sock;
+}
+
 /* connecting to the server and sending file */
 void fileAcceptFromServer(struct client *client) {
     /* getting ip address and port to connect to the server */
@@ -577,6 +566,17 @@ int fromServer(struct client *client) {
 
     printf("[%s]: %s\n", client->msgStruct.nickSender, client->buffer);
     return 1;
+}
+
+/* disconnecting client from server */
+void disconnectFromServer(struct pollfd *pollfds) {
+    for (int j = 0; j < NFDS; j++) {
+        close(pollfds[j].fd);
+        pollfds[j].fd = -1;
+        pollfds[j].events = 0;
+        pollfds[j].revents = 0;
+    }
+    printf("You are disconnected\n");
 }
 
 int runClient(struct client *client) {
