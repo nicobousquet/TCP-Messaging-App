@@ -32,7 +32,8 @@ void nicknameNew(struct client *client, char *newPseudo) {
     }
     unsigned long pseudoLength = strlen(newPseudo);
     /* checking length */
-    unsigned long correctPseudoLength = strspn(newPseudo,"QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890");
+    unsigned long correctPseudoLength = strspn(newPseudo,
+                                               "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890");
     if (pseudoLength > NICK_LEN) {
         printf("Too long pseudo\n");
         return;
@@ -171,7 +172,7 @@ void fileRequest(struct client *client, char *dstUser, char *filename) {
 
 void multicastSend(struct client *client, char *phrase, char *firstWord) {
     if (phrase != NULL) {
-        sprintf(client->payload + strlen(client->payload), "%s %s", firstWord, phrase);
+        sprintf(client->payload, "%s %s", firstWord, phrase);
     } else {
         strcpy(client->payload, firstWord);
     }
@@ -375,7 +376,8 @@ void fileReject(struct client *client) {
 }
 
 void fileRequestFromServer(struct client *client) {
-    printf("[%s]: %s wants you to accept the transfer of the file named \"%s\". Do you accept ? [Y/N]\n", client->msgStruct.nickSender, client->msgStruct.infos, client->buffer);
+    printf("[%s]: %s wants you to accept the transfer of the file named \"%s\". Do you accept ? [Y/N]\n",
+           client->msgStruct.nickSender, client->msgStruct.infos, client->buffer);
 
     /* loop waiting for user response for file request */
     while (1) {
@@ -541,7 +543,8 @@ int fromServer(struct client *client) {
         return 0;
     }
     /* Receiving message*/
-    if (client->msgStruct.payloadLen != 0 && recv(client->socket.fd, client->buffer, client->msgStruct.payloadLen, MSG_WAITALL) <= 0) {
+    if (client->msgStruct.payloadLen != 0 &&
+        recv(client->socket.fd, client->buffer, client->msgStruct.payloadLen, MSG_WAITALL) <= 0) {
         perror("recv");
         return 0;
     }
@@ -551,11 +554,11 @@ int fromServer(struct client *client) {
         case NICKNAME_NEW:
             nicknameNewFromServer(client);
             break;
-        /* if receiving a file request */
+            /* if receiving a file request */
         case FILE_REQUEST:
             fileRequestFromServer(client);
             return 1;
-        /* if receiving a file accept */
+            /* if receiving a file accept */
         case FILE_ACCEPT:
             printf("[SERVER]: %s accepted file transfer\n", client->msgStruct.nickSender);
             fileAcceptFromServer(client);
@@ -622,7 +625,7 @@ int runClient(struct client *client) {
     }
 }
 
-struct client *clientInit(char* hostname, char *port) {
+struct client *clientInit(char *hostname, char *port) {
     struct client *client = malloc(sizeof(struct client));
     memset(client, 0, sizeof(struct client));
     client->socket = socketAndConnect(hostname, port);
@@ -636,6 +639,7 @@ void usage(int argc) {
         exit(EXIT_FAILURE);
     }
 }
+
 int main(int argc, char *argv[]) {
     usage(argc);
 
