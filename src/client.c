@@ -241,8 +241,8 @@ int fromStdIn(struct client *client) {
         return 1;
     } else if (strcmp(firstWord, "/send") == 0) {
         char *destUser = strtok(NULL, " ");
-        char *filenamme = strtok(NULL, "");
-        fileRequest(client, destUser, filenamme);
+        char *filename = strtok(NULL, "");
+        fileRequest(client, destUser, filename);
         return 1;
     } else {
         multicastSend(client, strtok(NULL, ""), firstWord);
