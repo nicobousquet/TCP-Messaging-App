@@ -519,8 +519,8 @@ int processRequest(struct server *server) {
 }
 
 void disconnectUser(struct server *server) {
-    printf("client (%s:%hu) on socket %d has disconnected from server\n", server->currentUser->socket.ipAddr,
-           server->currentUser->socket.port, server->currentUser->socket.fd);
+    printf("%s (%s:%hu) on socket %d has disconnected from server\n", server->currentUser->pseudo,
+           server->currentUser->socket.ipAddr, server->currentUser->socket.port, server->currentUser->socket.fd);
     /* if user is in a chatroom
        we remove the user from the chatroom */
     if (server->currentUser->inChatroom == 1) {
@@ -646,13 +646,11 @@ _Noreturn void runServer(struct server *server) {
     }
 }
 
-struct server *serverInit(char *argv[]) {
-    char portNumber[INFOS_LEN];
-    strcpy(portNumber, argv[1]);
+struct server *serverInit(char *port) {
     /* creating server socket */
     struct server *server = malloc(sizeof(struct server));
     memset(server, 0, sizeof(struct server));
-    server->socket = socketAndBind(portNumber);
+    server->socket = socketAndBind(port);
     if ((listen(server->socket.fd, SOMAXCONN)) != 0) {
         free(server);
         perror("listen()");
@@ -662,17 +660,17 @@ struct server *serverInit(char *argv[]) {
     return server;
 }
 
-void usage(int argc) {
-    if (argc != 2) {
-        printf("Usage: ./server portNumber\n");
-        exit(EXIT_FAILURE);
-    }
+void usage() {
+    printf("Usage: ./server portNumber\n");
+    exit(EXIT_FAILURE);
 }
 
 int main(int argc, char *argv[]) {
-    usage(argc);
+    if (argc != 2) {
+        usage(argc);
+    }
 
-    struct server *server = serverInit(argv);
+    struct server *server = serverInit(argv[1]);
     /* running server */
     runServer(server);
 }

@@ -460,7 +460,6 @@ void fileAcceptFromServer(struct client *client) {
         close(clientP2P->socket.fd);
         free(clientP2P);
         printf("Connection closed with %s\n", client->msgStruct.nickSender);
-        free(clientP2P);
         return;
     }
     /* opening file to send */
@@ -633,15 +632,15 @@ struct client *clientInit(char *hostname, char *port) {
     return client;
 }
 
-void usage(int argc) {
-    if (argc != 3) {
+void usage() {
         printf("Usage: ./client hostname portNumber\n");
         exit(EXIT_FAILURE);
-    }
 }
 
 int main(int argc, char *argv[]) {
-    usage(argc);
+    if (argc != 3) {
+        usage();
+    }
 
     struct client *client = clientInit(argv[1], argv[2]);
     /* running client */
