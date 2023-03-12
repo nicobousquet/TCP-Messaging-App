@@ -424,6 +424,7 @@ struct socket socketAndConnect(char *hostname, char *port) {
 
 /* connecting to the server and sending file */
 void fileAcceptFromServer(struct client *client) {
+    printf("[SERVER]: %s accepted file transfer\n", client->packet.header.nickSender);
     /* getting ip address and port to connect to the server */
     char *serverIpAddr = strtok(client->buffer, ":");
     char *serverPortNumber = strtok(NULL, "\n");
@@ -545,7 +546,6 @@ int fromServer(struct client *client) {
             return 1;
             /* if receiving a file accept */
         case FILE_ACCEPT:
-            printf("[SERVER]: %s accepted file transfer\n", client->packet.header.nickSender);
             fileAcceptFromServer(client);
             return 1;
         default:
