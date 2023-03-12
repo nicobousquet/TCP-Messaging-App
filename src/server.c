@@ -531,7 +531,7 @@ void disconnectUser(struct server *server) {
         /* informing all the users in the chatroom that a user has quitted the chatroom */
         for (int l = 0; l < NB_USERS; l++) {
             if ((*chatroom)->users[l] != NULL) {
-                sprintf(server->packet.payload, "%s has quittedted the channel", server->currentUser->pseudo);
+                sprintf(server->packet.payload, "%s has quitted the channel", server->currentUser->pseudo);
                 server->packet.header.payloadLen = strlen(server->packet.payload);
                 strcpy(server->packet.header.nickSender, "SERVER");
                 sendPacket((*chatroom)->users[l]->socket.fd, &server->packet);
