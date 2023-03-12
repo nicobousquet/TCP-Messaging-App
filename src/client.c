@@ -10,21 +10,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-/* copying information in header */
-void fillMsg(struct client *client, char *nickSender, enum msgType type, char *infos, char *payload) {
-    if (nickSender != NULL) {
-        strcpy(client->packet.header.nickSender, nickSender);
-    }
-    client->packet.header.type = type;
-    if (infos != NULL) {
-        strcpy(client->packet.header.infos, infos);
-    }
-    if (payload != NULL) {
-        strcpy(client->packet.payload, payload);
-    }
-    client->packet.header.payloadLen = strlen(client->packet.payload);
-}
-
 void nicknameNew(struct client *client, char *newPseudo) {
     if (newPseudo == NULL) {
         printf("Please, choose a pseudo !\n");
@@ -44,7 +29,7 @@ void nicknameNew(struct client *client, char *newPseudo) {
         return;
     }
 
-    fillMsg(client, client->userPseudo, NICKNAME_NEW, newPseudo, "\0");
+    fillPacket(&client->packet, client->userPseudo, NICKNAME_NEW, newPseudo, "\0");
     sendPacket(client->socket.fd, &client->packet);
     return;
 }
@@ -65,19 +50,19 @@ void help() {
 }
 
 void nicknameList(struct client *client) {
-    fillMsg(client, client->userPseudo, NICKNAME_LIST, "\0", "\0");
+    fillPacket(&client->packet, client->userPseudo, NICKNAME_LIST, "\0", "\0");
     sendPacket(client->socket.fd, &client->packet);
     return;
 }
 
 void nicknameInfos(struct client *client, char *username) {
-    fillMsg(client, client->userPseudo, NICKNAME_INFOS, username, "\0");
+    fillPacket(&client->packet, client->userPseudo, NICKNAME_INFOS, username, "\0");
     sendPacket(client->socket.fd, &client->packet);
     return;
 }
 
 void broadcastSend(struct client *client, char *payload) {
-    fillMsg(client, client->userPseudo, BROADCAST_SEND, "\0", payload);
+    fillPacket(&client->packet, client->userPseudo, BROADCAST_SEND, "\0", payload);
     sendPacket(client->socket.fd, &client->packet);
     return;
 }
@@ -89,7 +74,7 @@ void unicastSend(struct client *client, char *destUsername, char *payload) {
         return;
     }
 
-    fillMsg(client, client->userPseudo, UNICAST_SEND, destUsername, payload);
+    fillPacket(&client->packet, client->userPseudo, UNICAST_SEND, destUsername, payload);
     sendPacket(client->socket.fd, &client->packet);
     return;
 }
@@ -109,19 +94,19 @@ void multicastCreate(struct client *client, char *channelName) {
         return;
     }
 
-    fillMsg(client, client->userPseudo, MULTICAST_CREATE, channelName, "\0");
+    fillPacket(&client->packet, client->userPseudo, MULTICAST_CREATE, channelName, "\0");
     sendPacket(client->socket.fd, &client->packet);
     return;
 }
 
 void multicastList(struct client *client) {
-    fillMsg(client, client->userPseudo, MULTICAST_LIST, "\0", "\0");
+    fillPacket(&client->packet, client->userPseudo, MULTICAST_LIST, "\0", "\0");
     sendPacket(client->socket.fd, &client->packet);
     return;
 }
 
 void multicastJoin(struct client *client, char *chatroom) {
-    fillMsg(client, client->userPseudo, MULTICAST_JOIN, chatroom, "\0");
+    fillPacket(&client->packet, client->userPseudo, MULTICAST_JOIN, chatroom, "\0");
     sendPacket(client->socket.fd, &client->packet);
     return;
 }
@@ -132,7 +117,7 @@ int quit(struct client *client, char *channelName) {
         /* quitting the server */
         return 0;
     }
-    fillMsg(client, client->userPseudo, MULTICAST_QUIT, channelName, "\0");
+    fillPacket(&client->packet, client->userPseudo, MULTICAST_QUIT, channelName, "\0");
     sendPacket(client->socket.fd, &client->packet);
     return 1;
 }
@@ -163,7 +148,7 @@ void fileRequest(struct client *client, char *dstUser, char *filename) {
     char file[MSG_LEN];
     extractFilename(tmp, file);
     /* writing only name of file to send and not the whole path into the payload */
-    fillMsg(client, client->userPseudo, FILE_REQUEST, dstUser, file);
+    fillPacket(&client->packet, client->userPseudo, FILE_REQUEST, dstUser, file);
     sendPacket(client->socket.fd, &client->packet);
     /* Sending structure and payload */
     printf("File request sent to %s\n", dstUser);
@@ -177,7 +162,7 @@ void multicastSend(struct client *client, char *phrase, char *firstWord) {
         strcpy(client->packet.payload, firstWord);
     }
 
-    fillMsg(client, client->userPseudo, MULTICAST_SEND, "\0", client->packet.payload);
+    fillPacket(&client->packet, client->userPseudo, MULTICAST_SEND, "\0", client->packet.payload);
     sendPacket(client->socket.fd, &client->packet);
     return;
 }
@@ -277,7 +262,7 @@ void fileAcceptFromStdIn(struct client *client, char *fileSender, char *fileToRe
     serverP2P->socket = bindAndListen(listeningPort);
     sprintf(serverP2P->packet.payload, "%s:%hu", serverP2P->socket.ipAddr, serverP2P->socket.port);
     /* sending ip address and port for the client to connect */
-    fillMsg(serverP2P, client->userPseudo, FILE_ACCEPT, fileSender, serverP2P->packet.payload);
+    fillPacket(&serverP2P->packet, client->userPseudo, FILE_ACCEPT, fileSender, serverP2P->packet.payload);
     sendPacket(client->socket.fd, &serverP2P->packet);
     struct sockaddr client_addr;
     memset(&client_addr, 0, sizeof(client_addr));
@@ -369,7 +354,7 @@ void fileAcceptFromStdIn(struct client *client, char *fileSender, char *fileToRe
 
 void fileReject(struct client *client) {
     memset(client->fileToSend, 0, NICK_LEN);
-    fillMsg(client, client->userPseudo, FILE_REJECT, client->packet.header.infos, client->buffer);
+    fillPacket(&client->packet, client->userPseudo, FILE_REJECT, client->packet.header.infos, client->buffer);
     /* Sending structure and payload */
     sendPacket(client->socket.fd, &client->packet);
     printf("You rejected the file transfer\n");
@@ -452,6 +437,7 @@ void fileAcceptFromServer(struct client *client) {
     printf("Sending the file...\n");
 
     struct stat sb;
+    memset(&sb, 0, sizeof(struct stat));
     stat(client->fileToSend, &sb);
     if (!S_ISREG(sb.st_mode)) {
         printf("Invalid filename\n");
@@ -482,7 +468,7 @@ void fileAcceptFromServer(struct client *client) {
     long size = sb.st_size;
     sprintf(clientP2P->packet.payload, "%lu", size);
     /* sending the size of the file to be sent */
-    fillMsg(clientP2P, client->userPseudo, FILE_SEND, "\0", clientP2P->packet.payload);
+    fillPacket(&clientP2P->packet, client->userPseudo, FILE_SEND, "\0", clientP2P->packet.payload);
     sendPacket(clientP2P->socket.fd, &clientP2P->packet);
     memset(clientP2P->packet.payload, 0, MSG_LEN);
 
