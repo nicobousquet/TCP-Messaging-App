@@ -52,7 +52,7 @@ struct packet {
 
 struct socket socketAndBind(char *port);
 
-void fillPacket(struct packet *packet, char *nickSender, enum msgType type, char *infos, char *payload);
+void setPacket(struct packet *packet, char *nickSender, enum msgType type, char *infos, char *payload);
 
 void sendPacket(int clientFd, struct packet *packet);
 

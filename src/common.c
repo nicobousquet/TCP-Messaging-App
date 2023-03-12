@@ -39,7 +39,7 @@ struct socket socketAndBind(char *port) {
 }
 
 /* copying information in header */
-void fillPacket(struct packet *packet, char *nickSender, enum msgType type, char *infos, char *payload) {
+void setPacket(struct packet *packet, char *nickSender, enum msgType type, char *infos, char *payload) {
     if (nickSender != NULL) {
         strcpy(packet->header.nickSender, nickSender);
     }
