@@ -43,9 +43,7 @@ typedef struct chatroom {
 } chatroom_t;
 
 struct server {
-    struct message msgStruct;
-    char payload[MSG_LEN];
-    char buffer[MSG_LEN];
+    struct packet packet;
     chatroom_t *chatrooms[NB_CHATROOMS];
     user_t *users;
     user_t *currentUser;

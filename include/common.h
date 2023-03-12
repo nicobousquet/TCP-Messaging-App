@@ -38,15 +38,20 @@ struct socket {
 };
 
 /* structure of a message */
-struct message {
+struct header {
     unsigned long payloadLen; /* length of the payload */
     char nickSender[2 * NICK_LEN]; /* name of the sender */
     enum msgType type; /* type of the message */
     char infos[INFOS_LEN]; /* additional infos on the message */
 };
 
+struct packet {
+    struct header header;
+    char payload[MSG_LEN];
+};
+
 struct socket socketAndBind(char *port);
 
-void sendMsg(int clientFd, struct message *msgStruct, char *payload);
+void sendPacket(int clientFd, struct packet *packet);
 
 #endif //COMMON_H

@@ -14,8 +14,7 @@ struct fileExchange {
 };
 
 struct client {
-    struct message msgStruct;
-    char payload[MSG_LEN];
+    struct packet packet;
     char buffer[MSG_LEN];
     struct socket socket;
     char userPseudo[NICK_LEN];

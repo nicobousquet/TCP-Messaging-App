@@ -173,7 +173,7 @@ enum msg_type {
 	FILE_ACK
 };
 
-struct message {
+struct header {
 	int pld_len;
 	char nick_sender[NICK_LEN];
 	enum msg_type type;
@@ -331,7 +331,7 @@ Exemple de fonctionnement des salons :
 %terminal_user0[channel_name]>  I'm downtown
                     %terminal_user1[channel_name]> user0> : I'm downtown
 %terminal_user0[channel_name] > /quit channel_name
-					%terminal_user1[channel_name] INFO> user0 has quit channel_name
+					%terminal_user1[channel_name] INFO> user0 has quitted channel_name
                     %terminal_user1[channel_name] > /quit channel_name
 					%terminal_user0> INFO> You were the last user in this channel, channel_name has been destroyed
 

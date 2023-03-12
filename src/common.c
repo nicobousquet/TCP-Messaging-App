@@ -39,14 +39,14 @@ struct socket socketAndBind(char *port) {
 }
 
 /* send structure and payload */
-void sendMsg(int clientFd, struct message *msgStruct, char *payload) {
-    if (send(clientFd, msgStruct, sizeof(struct message), 0) <= 0) {
-        perror("SendMsg");
+void sendPacket(int clientFd, struct packet *packet) {
+    if (send(clientFd, &packet->header, sizeof(struct header), 0) <= 0) {
+        perror("sendPacket");
         exit(EXIT_FAILURE);
     }
 
-    if (msgStruct->payloadLen != 0 && send(clientFd, payload, msgStruct->payloadLen, 0) <= 0) {
-        perror("SendMsg");
+    if (packet->header.payloadLen != 0 && send(clientFd, packet->payload, packet->header.payloadLen, 0) <= 0) {
+        perror("sendPacket");
         exit(EXIT_FAILURE);
     }
 }
