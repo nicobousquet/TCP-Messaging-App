@@ -103,8 +103,7 @@ void nicknameNew(struct server *server) {
     strcpy(server->packet.header.nickSender, "SERVER");
     for (user_t *user = server->users; user != NULL; user = user->next) {
         /* looking if pseudo used by another user */
-        if (strcmp(user->pseudo, server->packet.header.infos) == 0 &&
-            user->socket.fd != server->currentUser->socket.fd) {
+        if (strcmp(user->pseudo, server->packet.header.infos) == 0 && user->socket.fd != server->currentUser->socket.fd) {
             strcpy(server->packet.payload, "Pseudo used by another user");
             server->packet.header.payloadLen = strlen(server->packet.payload);
             server->packet.header.type = DEFAULT;
@@ -114,8 +113,7 @@ void nicknameNew(struct server *server) {
     }
     /* if pseudo not used yet, adding user pseudo */
     strcpy(server->currentUser->pseudo, server->packet.header.infos);
-    sprintf(server->packet.payload, "Welcome on the chat %s, type a command or type /help if you need help",
-            server->currentUser->pseudo);
+    sprintf(server->packet.payload, "Welcome on the chat %s, type a command or type /help if you need help", server->currentUser->pseudo);
     server->packet.header.payloadLen = strlen(server->packet.payload);
     sendPacket(server->currentUser->socket.fd, &server->packet);
 }
@@ -140,9 +138,7 @@ void nicknameInfos(struct server *server) {
         strcpy(server->packet.payload, "Unknown user");
         server->packet.header.payloadLen = strlen(server->packet.payload);
     } else { /* if user exists */
-        sprintf(server->packet.payload, "%s is connected since %s with IP address %s and port number %hu",
-                dstUser->pseudo,
-                dstUser->date, dstUser->socket.ipAddr, dstUser->socket.port);
+        sprintf(server->packet.payload, "%s is connected since %s with IP address %s and port number %hu", dstUser->pseudo, dstUser->date, dstUser->socket.ipAddr, dstUser->socket.port);
         server->packet.header.payloadLen = strlen(server->packet.payload);
     }
     sendPacket(server->currentUser->socket.fd, &server->packet);
@@ -207,8 +203,7 @@ void multicastCreate(struct server *server) {
         }
         /* if chatroom is empty, destroying it */
         if ((*chatroom)->nbOfUsers == 0) {
-            sprintf(server->packet.payload, "You were the last user in %s, this channel has been destroyed",
-                    (*chatroom)->name);
+            sprintf(server->packet.payload, "You were the last user in %s, this channel has been destroyed", (*chatroom)->name);
             server->packet.header.payloadLen = strlen(server->packet.payload);
             strcpy(server->packet.header.nickSender, "SERVER");
             sendPacket(server->currentUser->socket.fd, &server->packet);
@@ -283,8 +278,7 @@ void multicastJoin(struct server *server) {
                 }
                 /* if chatroom is empty, destroying it */
                 if ((*currentChatroom)->nbOfUsers == 0) {
-                    sprintf(server->packet.payload, "You were the last user in %s, this channel has been destroyed",
-                            (*currentChatroom)->name);
+                    sprintf(server->packet.payload, "You were the last user in %s, this channel has been destroyed", (*currentChatroom)->name);
                     server->packet.header.payloadLen = strlen(server->packet.payload);
                     strcpy(server->packet.header.nickSender, "SERVER");
                     sendPacket(server->currentUser->socket.fd, &server->packet);
@@ -341,8 +335,7 @@ void multicastQuit(struct server *server) {
             sendPacket(server->currentUser->socket.fd, &server->packet);
             /* if chatroom is now empty */
             if ((*chatroom)->nbOfUsers == 0) {
-                sprintf(server->packet.payload, "You were the last user in this channel, %s has been destroyed",
-                        (*chatroom)->name);
+                sprintf(server->packet.payload, "You were the last user in this channel, %s has been destroyed", (*chatroom)->name);
                 server->packet.header.payloadLen = strlen(server->packet.payload);
                 strcpy(server->packet.header.nickSender, "SERVER");
                 sendPacket(server->currentUser->socket.fd, &server->packet);
@@ -448,14 +441,11 @@ int processRequest(struct server *server) {
     }
     /* Receiving message */
     memset(server->packet.payload, 0, MSG_LEN);
-    if (server->packet.header.payloadLen != 0 &&
-        recv(server->currentUser->socket.fd, server->packet.payload, server->packet.header.payloadLen, MSG_WAITALL) <=
-        0) {
+    if (server->packet.header.payloadLen != 0 && recv(server->currentUser->socket.fd, server->packet.payload, server->packet.header.payloadLen, MSG_WAITALL) <= 0) {
         perror("recv");
         return 1;
     }
-    printf("payloadLen: %ld / nickSender: %s / type: %s / infos: %s\n", server->packet.header.payloadLen,
-           server->packet.header.nickSender, msgTypeStr[server->packet.header.type], server->packet.header.infos);
+    printf("payloadLen: %ld / nickSender: %s / type: %s / infos: %s\n", server->packet.header.payloadLen, server->packet.header.nickSender, msgTypeStr[server->packet.header.type], server->packet.header.infos);
     printf("payload: %s\n", server->packet.payload);
 
     switch (server->packet.header.type) {
@@ -634,7 +624,6 @@ _Noreturn void runServer(struct server *server) {
                         break;
                     }
                 }
-
                 server->currentUser = current;
                 /* Processing user request */
                 if (!processRequest(server)) {
