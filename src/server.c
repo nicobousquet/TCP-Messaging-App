@@ -249,7 +249,7 @@ void multicastJoin(struct server *server) {
     chatroom_t **chatroomToJoin = getChatroomInServer((void *) &arg1, 1);
     /* if chatroom exists */
     if (chatroomToJoin != NULL) {
-        struct1_t arg1 = {server, server->currentUser};;
+        struct1_t arg1 = {server, server->currentUser};
         chatroom_t **currentChatroom = getChatroomInServer((void *) &arg1, 0);
         /* if user is in a chatroom*/
         if (currentChatroom != NULL) {
@@ -512,7 +512,7 @@ void disconnectUser(struct server *server, struct user *user) {
        we remove the user from the chatroom */
     if (user->inChatroom == 1) {
         /* getting the chatroom in which the user is */
-        struct1_t arg1 = {server, server->currentUser};;
+        struct1_t arg1 = {server, server->currentUser};
         chatroom_t **chatroom = getChatroomInServer((void *) &arg1, 0);
         /* getting the user in the chatroom */
         user_t **user = getUserInChatroom(chatroom, server->currentUser);
@@ -661,7 +661,7 @@ void usage() {
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
-        usage(argc);
+        usage();
     }
 
     struct server *server = serverInit(argv[1]);
