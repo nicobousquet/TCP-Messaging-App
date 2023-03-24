@@ -588,7 +588,7 @@ _Noreturn void runServer(struct server *server) {
                 memcpy(&user->socket, &socket, sizeof(struct socket));
                 strcpy(user->pseudo, pseudo);
                 strcpy(user->date, date);
-                user->inChatroom = 1;
+                user->inChatroom = 0;
                 pushUser(server, user);
                 /* store new file descriptor in available slot in the array of struct pollfd set .events to POLLIN */
                 for (int j = 0; j < NB_USERS; j++) {
