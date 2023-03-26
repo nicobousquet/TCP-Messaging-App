@@ -103,7 +103,7 @@ void nicknameNew(struct server *server) {
     strcpy(server->packet.header.nickSender, "SERVER");
     for (user_t *user = server->users; user != NULL; user = user->next) {
         /* looking if pseudo used by another user */
-        if (strcmp(user->pseudo, server->packet.header.infos) == 0 && user->socket.fd != server->currentUser->socket.fd) {
+        if (strcmp(user->pseudo, server->packet.header.infos) == 0) {
             strcpy(server->packet.payload, "Pseudo used by another user");
             server->packet.header.payloadLen = strlen(server->packet.payload);
             server->packet.header.type = DEFAULT;

@@ -252,7 +252,7 @@ struct socket bindAndListen(char *listeningPort) {
     return serverSocket;
 }
 
-void fileAcceptFromStdIn(struct client *client, char *fileSender, char *fileToReceive) {
+void fileAcceptFromStdIn(struct client *client, char *fileSender) {
     printf("You accepted the file transfer\n");
     /* letting the computer choosing a listening port */
     char listeningPort[INFOS_LEN] = "0";
@@ -307,9 +307,9 @@ void fileAcceptFromStdIn(struct client *client, char *fileSender, char *fileToRe
     if (mkdir("inbox", S_IRWXU | S_IRWXG | S_IRWXO) && errno != EEXIST) {
         perror("mkdir:");
     }
-    char filenameDst[NICK_LEN];
+    char filenameDst[2 * NICK_LEN];
     /* creating the path of the received file */
-    sprintf(filenameDst, "inbox/%s", fileToReceive);
+    sprintf(filenameDst, "inbox/%s", client->fileToReceive);
     /* opening the file */
     int newFileFd = open(filenameDst, O_RDWR | O_CREAT | O_APPEND, S_IRWXU);
     if (newFileFd == -1) {
@@ -361,8 +361,8 @@ void fileReject(struct client *client) {
 }
 
 void fileRequestFromServer(struct client *client) {
-    printf("[%s]: %s wants you to accept the transfer of the file named \"%s\". Do you accept ? [Y/N]\n",
-           client->packet.header.nickSender, client->packet.header.infos, client->buffer);
+    strcpy(client->fileToReceive, client->buffer);
+    printf("[%s]: %s wants you to accept the transfer of the file named \"%s\". Do you accept ? [Y/N]\n", client->packet.header.nickSender, client->packet.header.infos, client->fileToReceive);
 
     /* loop waiting for user response for file request */
     while (1) {
@@ -376,7 +376,7 @@ void fileRequestFromServer(struct client *client) {
         fflush(stdout);
 
         if (strcmp(client->buffer, "Y") == 0 || strcmp(client->buffer, "y") == 0) {
-            fileAcceptFromStdIn(client, client->packet.header.infos, client->buffer);
+            fileAcceptFromStdIn(client, client->packet.header.infos);
             return;
         } else if (strcmp(client->buffer, "N") == 0 || strcmp(client->buffer, "n") == 0) {
             fileReject(client);
