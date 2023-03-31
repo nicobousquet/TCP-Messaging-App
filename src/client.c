@@ -30,7 +30,7 @@ void nicknameNew(struct client *client, char *newPseudo) {
     }
 
     setPacket(&client->packet, client->userPseudo, NICKNAME_NEW, newPseudo, "\0");
-    sendPacket(client->socket.fd, &client->packet);
+    sendPacket(client->socketFd, &client->packet);
     return;
 }
 
@@ -51,19 +51,19 @@ void help() {
 
 void nicknameList(struct client *client) {
     setPacket(&client->packet, client->userPseudo, NICKNAME_LIST, "\0", "\0");
-    sendPacket(client->socket.fd, &client->packet);
+    sendPacket(client->socketFd, &client->packet);
     return;
 }
 
 void nicknameInfos(struct client *client, char *username) {
     setPacket(&client->packet, client->userPseudo, NICKNAME_INFOS, username, "\0");
-    sendPacket(client->socket.fd, &client->packet);
+    sendPacket(client->socketFd, &client->packet);
     return;
 }
 
 void broadcastSend(struct client *client, char *payload) {
     setPacket(&client->packet, client->userPseudo, BROADCAST_SEND, "\0", payload);
-    sendPacket(client->socket.fd, &client->packet);
+    sendPacket(client->socketFd, &client->packet);
     return;
 }
 
@@ -75,7 +75,7 @@ void unicastSend(struct client *client, char *destUsername, char *payload) {
     }
 
     setPacket(&client->packet, client->userPseudo, UNICAST_SEND, destUsername, payload);
-    sendPacket(client->socket.fd, &client->packet);
+    sendPacket(client->socketFd, &client->packet);
     return;
 }
 
@@ -95,19 +95,19 @@ void multicastCreate(struct client *client, char *channelName) {
     }
 
     setPacket(&client->packet, client->userPseudo, MULTICAST_CREATE, channelName, "\0");
-    sendPacket(client->socket.fd, &client->packet);
+    sendPacket(client->socketFd, &client->packet);
     return;
 }
 
 void multicastList(struct client *client) {
     setPacket(&client->packet, client->userPseudo, MULTICAST_LIST, "\0", "\0");
-    sendPacket(client->socket.fd, &client->packet);
+    sendPacket(client->socketFd, &client->packet);
     return;
 }
 
 void multicastJoin(struct client *client, char *chatroom) {
     setPacket(&client->packet, client->userPseudo, MULTICAST_JOIN, chatroom, "\0");
-    sendPacket(client->socket.fd, &client->packet);
+    sendPacket(client->socketFd, &client->packet);
     return;
 }
 
@@ -118,7 +118,7 @@ int quit(struct client *client, char *channelName) {
         return 0;
     }
     setPacket(&client->packet, client->userPseudo, MULTICAST_QUIT, channelName, "\0");
-    sendPacket(client->socket.fd, &client->packet);
+    sendPacket(client->socketFd, &client->packet);
     return 1;
 }
 
@@ -149,7 +149,7 @@ void fileRequest(struct client *client, char *dstUser, char *filename) {
     extractFilename(tmp, file);
     /* writing only name of file to send and not the whole path into the payload */
     setPacket(&client->packet, client->userPseudo, FILE_REQUEST, dstUser, file);
-    sendPacket(client->socket.fd, &client->packet);
+    sendPacket(client->socketFd, &client->packet);
     /* Sending structure and payload */
     printf("File request sent to %s\n", dstUser);
     return;
@@ -163,7 +163,7 @@ void multicastSend(struct client *client, char *phrase, char *firstWord) {
     }
 
     setPacket(&client->packet, client->userPseudo, MULTICAST_SEND, "\0", client->packet.payload);
-    sendPacket(client->socket.fd, &client->packet);
+    sendPacket(client->socketFd, &client->packet);
     return;
 }
 
@@ -242,14 +242,41 @@ void nicknameNewFromServer(struct client *client) {
 }
 
 /* creation of a server socket */
-struct socket bindAndListen(char *listeningPort) {
-    struct socket serverSocket = socketAndBind(listeningPort);
-    if ((listen(serverSocket.fd, SOMAXCONN)) != 0) {
-        perror("listen()\n");
+struct client *serverP2PInit(char *listeningPort) {
+    struct client *serverP2P = malloc(sizeof(struct client));
+    memset(serverP2P, 0, sizeof(struct client));
+    struct addrinfo hints, *result, *rp;
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
+    if (getaddrinfo(NULL, listeningPort, &hints, &result) != 0) {
+        perror("getaddrinfo()");
         exit(EXIT_FAILURE);
     }
-    printf("Listening on %s:%hu\n", serverSocket.ipAddr, serverSocket.port);
-    return serverSocket;
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+        serverP2P->socketFd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (serverP2P->socketFd == -1) {
+            continue;
+        }
+        if (bind(serverP2P->socketFd, rp->ai_addr, rp->ai_addrlen) == 0) {
+            /* getting ip address  and port*/
+            struct sockaddr_in my_addr;
+            socklen_t len = sizeof(my_addr);
+            getsockname(serverP2P->socketFd, (struct sockaddr *) &my_addr, &len);
+            inet_ntop(AF_INET, &my_addr.sin_addr, serverP2P->ipAddr, 16);
+            serverP2P->portNum = ntohs(my_addr.sin_port);
+            freeaddrinfo(result);
+            if ((listen(serverP2P->socketFd, SOMAXCONN)) != 0) {
+                perror("listen()\n");
+                exit(EXIT_FAILURE);
+            }
+            printf("Listening on %s:%hu\n", serverP2P->ipAddr, serverP2P->portNum);
+            return serverP2P;
+        }
+        close(serverP2P->socketFd);
+    }
+    perror("bind()");
+    exit(EXIT_FAILURE);
 }
 
 void fileAcceptFromStdIn(struct client *client, char *fileSender) {
@@ -257,21 +284,19 @@ void fileAcceptFromStdIn(struct client *client, char *fileSender) {
     /* letting the computer choosing a listening port */
     char listeningPort[INFOS_LEN] = "0";
     /* creating a listening socket */
-    struct client *serverP2P = malloc(sizeof(struct client));
-    memset(serverP2P, 0, sizeof(struct client));
-    serverP2P->socket = bindAndListen(listeningPort);
-    sprintf(serverP2P->packet.payload, "%s:%hu", serverP2P->socket.ipAddr, serverP2P->socket.port);
+    struct client *serverP2P = serverP2PInit(listeningPort);
+    sprintf(serverP2P->packet.payload, "%s:%hu", serverP2P->ipAddr, serverP2P->portNum);
     /* sending ip address and port for the client to connect */
     setPacket(&serverP2P->packet, client->userPseudo, FILE_ACCEPT, fileSender, serverP2P->packet.payload);
-    sendPacket(client->socket.fd, &serverP2P->packet);
+    sendPacket(client->socketFd, &serverP2P->packet);
     struct sockaddr client_addr;
     memset(&client_addr, 0, sizeof(client_addr));
     socklen_t len = sizeof(client_addr);
     /* accepting connection from client */
-    if ((serverP2P->socket.fd = accept(serverP2P->socket.fd, &client_addr, &len)) == -1) {
+    if ((serverP2P->socketFd = accept(serverP2P->socketFd, &client_addr, &len)) == -1) {
         perror("Accept");
     }
-    getpeername(serverP2P->socket.fd, (struct sockaddr *) &client_addr, &len);
+    getpeername(serverP2P->socketFd, (struct sockaddr *) &client_addr, &len);
     char clientIpAddr[INFOS_LEN];
     strcpy(clientIpAddr, inet_ntoa(((struct sockaddr_in *) &client_addr)->sin_addr));
     u_short clientPort = ntohs(((struct sockaddr_in *) &client_addr)->sin_port);
@@ -281,7 +306,7 @@ void fileAcceptFromStdIn(struct client *client, char *fileSender) {
     printf("Receiving the file...\n");
 
     /* receiving a first structure to check if file exists on client's computer and if yes, with the size of the file */
-    if (recv(serverP2P->socket.fd, &serverP2P->packet.header, sizeof(struct header), MSG_WAITALL) <= 0) {
+    if (recv(serverP2P->socketFd, &serverP2P->packet.header, sizeof(struct header), MSG_WAITALL) <= 0) {
         perror("recv FILE_SEND");
         exit(EXIT_FAILURE);
     }
@@ -290,15 +315,15 @@ void fileAcceptFromStdIn(struct client *client, char *fileSender) {
      * file transfer is aborted */
     if (serverP2P->packet.header.type == FILENAME) {
         printf("Error: file not sent\n");
-        recv(serverP2P->socket.fd, serverP2P->buffer, 0, MSG_WAITALL);
-        close(serverP2P->socket.fd);
+        recv(serverP2P->socketFd, serverP2P->buffer, 0, MSG_WAITALL);
+        close(serverP2P->socketFd);
         printf("Connection closed with %s (%s:%hu)\n", fileSender, clientIpAddr, clientPort);
         free(serverP2P);
         return;
     }
 
     /* receiving the size of the file */
-    if (recv(serverP2P->socket.fd, serverP2P->buffer, serverP2P->packet.header.payloadLen, MSG_WAITALL) <= 0) {
+    if (recv(serverP2P->socketFd, serverP2P->buffer, serverP2P->packet.header.payloadLen, MSG_WAITALL) <= 0) {
         perror("recv file size");
         exit(EXIT_FAILURE);
     }
@@ -320,9 +345,9 @@ void fileAcceptFromStdIn(struct client *client, char *fileSender) {
     long ret = 0, offset = 0;
     /* while we did not receive all the data of the file */
     while (offset != size) {
-        recv(serverP2P->socket.fd, &serverP2P->packet.header, sizeof(struct header), MSG_WAITALL);
+        recv(serverP2P->socketFd, &serverP2P->packet.header, sizeof(struct header), MSG_WAITALL);
         /* receiving file by frame of max 1024 bytes */
-        recv(serverP2P->socket.fd, serverP2P->buffer, serverP2P->packet.header.payloadLen, MSG_WAITALL);
+        recv(serverP2P->socketFd, serverP2P->buffer, serverP2P->packet.header.payloadLen, MSG_WAITALL);
         /* writing received data in a new file */
         if (-1 == (ret = write(newFileFd, serverP2P->buffer, serverP2P->packet.header.payloadLen))) {
             perror("Writing in new file");
@@ -344,9 +369,9 @@ void fileAcceptFromStdIn(struct client *client, char *fileSender) {
 
     serverP2P->packet.header.type = FILE_ACK;
     /* sending ack */
-    send(serverP2P->socket.fd, &serverP2P->packet.header, sizeof(struct header), 0);
-    recv(serverP2P->socket.fd, serverP2P->buffer, 0, MSG_WAITALL);
-    close(serverP2P->socket.fd);
+    send(serverP2P->socketFd, &serverP2P->packet.header, sizeof(struct header), 0);
+    recv(serverP2P->socketFd, serverP2P->buffer, 0, MSG_WAITALL);
+    close(serverP2P->socketFd);
     printf("Connection closed with %s\n", fileSender);
     free(serverP2P);
     return;
@@ -356,7 +381,7 @@ void fileReject(struct client *client) {
     memset(client->fileToSend, 0, NICK_LEN);
     setPacket(&client->packet, client->userPseudo, FILE_REJECT, client->packet.header.infos, client->buffer);
     /* Sending structure and payload */
-    sendPacket(client->socket.fd, &client->packet);
+    sendPacket(client->socketFd, &client->packet);
     printf("You rejected the file transfer\n");
 }
 
@@ -389,8 +414,9 @@ void fileRequestFromServer(struct client *client) {
 }
 
 /* Connecting to server socket */
-struct socket socketAndConnect(char *hostname, char *port) {
-    struct socket sock;
+struct client *clientInit(char *hostname, char *port) {
+    struct client *client = malloc(sizeof(struct client));
+    memset(client, 0, sizeof(struct client));
     struct addrinfo hints, *result, *rp;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_socktype = SOCK_STREAM;
@@ -399,27 +425,28 @@ struct socket socketAndConnect(char *hostname, char *port) {
         exit(EXIT_FAILURE);
     }
     for (rp = result; rp != NULL; rp = rp->ai_next) {
-        sock.fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-        if (sock.fd == -1) {
+        client->socketFd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (client->socketFd == -1) {
             continue;
         }
-        if (connect(sock.fd, rp->ai_addr, rp->ai_addrlen) != -1) {
+        if (connect(client->socketFd, rp->ai_addr, rp->ai_addrlen) != -1) {
             /* getting ip address and port of connection */
             struct sockaddr_in *sockAddrInPtr = (struct sockaddr_in *) rp->ai_addr;
             socklen_t len = sizeof(struct sockaddr_in);
-            getsockname(sock.fd, (struct sockaddr *) sockAddrInPtr, &len);
-            sock.port = ntohs(sockAddrInPtr->sin_port);
-            strcpy(sock.ipAddr, inet_ntoa(sockAddrInPtr->sin_addr));
+            getsockname(client->socketFd, (struct sockaddr *) sockAddrInPtr, &len);
+            client->portNum = ntohs(sockAddrInPtr->sin_port);
+            strcpy(client->ipAddr, inet_ntoa(sockAddrInPtr->sin_addr));
             break;
         }
-        close(sock.fd);
+        close(client->socketFd);
     }
     if (rp == NULL) {
         perror("connect()");
         exit(EXIT_FAILURE);
     }
     freeaddrinfo(result);
-    return sock;
+    printf("You (%s:%hu) are now connected to the server (%s:%s)\n", client->ipAddr, client->portNum, hostname, port);
+    return client;
 }
 
 /* connecting to the server and sending file */
@@ -429,22 +456,17 @@ void fileAcceptFromServer(struct client *client) {
     char *serverIpAddr = strtok(client->buffer, ":");
     char *serverPortNumber = strtok(NULL, "\n");
     /* connecting to the server */
-    struct client *clientP2P = malloc(sizeof(struct client));
-    memset(clientP2P, 0, sizeof(struct client));
-    clientP2P->socket = socketAndConnect(serverIpAddr, serverPortNumber);
-    printf("You (%s:%hu) are now connected to %s (%s:%s)\n", clientP2P->socket.ipAddr,
-           clientP2P->socket.port, client->packet.header.nickSender, serverIpAddr, serverPortNumber);
+    struct client *clientP2P = clientInit(serverIpAddr, serverPortNumber);
     /* sending file */
     printf("Sending the file...\n");
-
     struct stat sb;
     memset(&sb, 0, sizeof(struct stat));
     stat(client->fileToSend, &sb);
     if (!S_ISREG(sb.st_mode)) {
         printf("Invalid filename\n");
         clientP2P->packet.header.type = FILENAME;
-        send(clientP2P->socket.fd, &clientP2P->packet.header, sizeof(struct header), 0);
-        close(clientP2P->socket.fd);
+        send(clientP2P->socketFd, &clientP2P->packet.header, sizeof(struct header), 0);
+        close(clientP2P->socketFd);
         free(clientP2P);
         printf("Connection closed with %s\n", client->packet.header.nickSender);
         return;
@@ -455,8 +477,8 @@ void fileAcceptFromServer(struct client *client) {
         if (errno == ENOENT) {
             printf("Invalid filename\n");
             clientP2P->packet.header.type = FILENAME;
-            send(clientP2P->socket.fd, &clientP2P->packet.header, sizeof(struct header), 0);
-            close(clientP2P->socket.fd);
+            send(clientP2P->socketFd, &clientP2P->packet.header, sizeof(struct header), 0);
+            close(clientP2P->socketFd);
             printf("Connection closed with %s\n", client->packet.header.nickSender);
             free(clientP2P);
             return;
@@ -470,7 +492,7 @@ void fileAcceptFromServer(struct client *client) {
     sprintf(clientP2P->packet.payload, "%lu", size);
     /* sending the size of the file to be sent */
     setPacket(&clientP2P->packet, client->userPseudo, FILE_SEND, "\0", clientP2P->packet.payload);
-    sendPacket(clientP2P->socket.fd, &clientP2P->packet);
+    sendPacket(clientP2P->socketFd, &clientP2P->packet);
     memset(clientP2P->packet.payload, 0, MSG_LEN);
 
     long offset = 0;
@@ -489,13 +511,12 @@ void fileAcceptFromServer(struct client *client) {
             break;
         }
         clientP2P->packet.header.payloadLen = ret;
-        sendPacket(clientP2P->socket.fd, &clientP2P->packet);
+        sendPacket(clientP2P->socketFd, &clientP2P->packet);
         /* waiting data to be read by dest user in the socket file*/
         usleep(1000);
         offset += ret;
         /* displaying progression bar while sending file */
-        char progressBar[12] = {'[', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
-                                ']'}; //barre de progression de l'envoi du fichier
+        char progressBar[12] = {'[', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', ']'}; //barre de progression de l'envoi du fichier
         int progression = (int) (((double) offset / (double) size) * 100);
         for (int j = 1; j <= progression / 10; j++) {
             progressBar[j] = '#';
@@ -509,14 +530,14 @@ void fileAcceptFromServer(struct client *client) {
     printf("File sent successfully\n");
 
     /* receiving ack */
-    recv(clientP2P->socket.fd, &clientP2P->packet.header, sizeof(struct header), MSG_WAITALL);
+    recv(clientP2P->socketFd, &clientP2P->packet.header, sizeof(struct header), MSG_WAITALL);
     if (clientP2P->packet.header.type == FILE_ACK) {
         printf("%s has received the file\n", client->packet.header.nickSender);
     } else {
         printf("Problem in reception\n");
     }
     /* closing connection */
-    close(clientP2P->socket.fd);
+    close(clientP2P->socketFd);
     free(clientP2P);
     printf("Connection closed with %s\n", client->packet.header.nickSender);
 }
@@ -524,13 +545,13 @@ void fileAcceptFromServer(struct client *client) {
 /* processing data coming from the server */
 int fromServer(struct client *client) {
     /*Receiving structure*/
-    if (recv(client->socket.fd, &client->packet.header, sizeof(struct header), MSG_WAITALL) <= 0) {
+    if (recv(client->socketFd, &client->packet.header, sizeof(struct header), MSG_WAITALL) <= 0) {
         printf("Server has crashed\n");
         return 0;
     }
     /* Receiving message*/
     if (client->packet.header.payloadLen != 0 &&
-        recv(client->socket.fd, client->buffer, client->packet.header.payloadLen, MSG_WAITALL) <= 0) {
+        recv(client->socketFd, client->buffer, client->packet.header.payloadLen, MSG_WAITALL) <= 0) {
         perror("recv");
         return 0;
     }
@@ -572,7 +593,7 @@ int runClient(struct client *client) {
     struct pollfd pollfds[NFDS];
     /* Init first slots with listening socket  to receive data */
     /* from server */
-    pollfds[0].fd = client->socket.fd;
+    pollfds[0].fd = client->socketFd;
     pollfds[0].events = POLLIN;
     pollfds[0].revents = 0;
     /* from keyboard */
@@ -608,14 +629,6 @@ int runClient(struct client *client) {
             }
         }
     }
-}
-
-struct client *clientInit(char *hostname, char *port) {
-    struct client *client = malloc(sizeof(struct client));
-    memset(client, 0, sizeof(struct client));
-    client->socket = socketAndConnect(hostname, port);
-    printf("Client (%s:%hu) connected to server (%s:%s)\n", client->socket.ipAddr, client->socket.port, hostname, port);
-    return client;
 }
 
 void usage() {

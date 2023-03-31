@@ -31,12 +31,6 @@ enum msgType {
     QUIT
 };
 
-struct socket {
-    int fd;
-    char ipAddr[16];
-    u_short port;
-};
-
 /* structure of a message */
 struct header {
     unsigned long payloadLen; /* length of the payload */
@@ -49,8 +43,6 @@ struct packet {
     struct header header;
     char payload[MSG_LEN];
 };
-
-struct socket socketAndBind(char *port);
 
 void setPacket(struct packet *packet, char *nickSender, enum msgType type, char *infos, char *payload);
 

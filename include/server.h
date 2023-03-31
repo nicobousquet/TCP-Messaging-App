@@ -30,27 +30,31 @@ static char *msgTypeStr[] = {
 };
 
 /* structure of a user */
-typedef struct user {
-    struct socket socket;
+struct user {
+    int socketFd;
+    char ipAddr[16];
+    u_short portNum;
     char pseudo[NICK_LEN];
     char date[INFOS_LEN]; /* date of connection */
     int inChatroom; /* 0 if user is not in a chatroom, else 1 */
     struct user *next; /* next user */
-} user_t;
+};
 
 /* structure of a chatroom */
-typedef struct chatroom {
+struct chatroom {
     char name[NICK_LEN]; /* name of the chatroom */
-    user_t *users[10]; /* users who are in the chatroom */
-    int nbOfUsers; /* number of users in the chatroom */
-} chatroom_t;
+    struct user *users[10]; /* users who are in the chatroom */
+    int numOfUsers; /* number of users in the chatroom */
+};
 
 struct server {
+    int socketFd;
+    char ipAddr[16];
+    u_short portNum;
     struct packet packet;
-    chatroom_t *chatrooms[NB_CHATROOMS];
-    user_t *users;
-    user_t *currentUser;
-    struct socket socket;
+    struct chatroom *chatrooms[NB_CHATROOMS];
+    struct user *users;
+    struct user *currentUser;
 };
 
 #endif //SERVER_H
