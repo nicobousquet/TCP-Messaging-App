@@ -17,8 +17,7 @@ void nicknameNew(struct client *client, char *newPseudo) {
     }
     unsigned long pseudoLength = strlen(newPseudo);
     /* checking length */
-    unsigned long correctPseudoLength = strspn(newPseudo,
-                                               "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890");
+    unsigned long correctPseudoLength = strspn(newPseudo, "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890");
     if (pseudoLength > NICK_LEN) {
         printf("Too long pseudo\n");
         return;
@@ -184,12 +183,6 @@ int fromStdIn(struct client *client) {
         return 1;
     }
 
-    /* asking user to log in first */
-    if (strcmp(firstWord, "/nick") != 0 && client->loggedIn == 0) {
-        printf("Please, login with /nick <your pseudo>\n");
-        return 1;
-    }
-
     if (strcmp(firstWord, "/nick") == 0) {
         nicknameNew(client, strtok(NULL, " "));
         return 1;
@@ -237,8 +230,6 @@ int fromStdIn(struct client *client) {
 
 void nicknameNewFromServer(struct client *client) {
     strcpy(client->userPseudo, client->packet.header.infos);
-    /* user logged in */
-    client->loggedIn = 1;
 }
 
 /* creation of a server socket */
@@ -550,8 +541,7 @@ int fromServer(struct client *client) {
         return 0;
     }
     /* Receiving message*/
-    if (client->packet.header.payloadLen != 0 &&
-        recv(client->socketFd, client->buffer, client->packet.header.payloadLen, MSG_WAITALL) <= 0) {
+    if (client->packet.header.payloadLen != 0 && recv(client->socketFd, client->buffer, client->packet.header.payloadLen, MSG_WAITALL) <= 0) {
         perror("recv");
         return 0;
     }
@@ -579,7 +569,7 @@ int fromServer(struct client *client) {
 
 /* disconnecting client from server */
 void disconnectFromServer(struct pollfd *pollfds) {
-    for (int j = 0; j < NFDS; j++) {
+    for (int j = 0; j < NUM_FDS; j++) {
         close(pollfds[j].fd);
         pollfds[j].fd = -1;
         pollfds[j].events = 0;
@@ -590,7 +580,7 @@ void disconnectFromServer(struct pollfd *pollfds) {
 
 int runClient(struct client *client) {
     /* Declare array of struct pollfd */
-    struct pollfd pollfds[NFDS];
+    struct pollfd pollfds[NUM_FDS];
     /* Init first slots with listening socket  to receive data */
     /* from server */
     pollfds[0].fd = client->socketFd;
@@ -600,14 +590,13 @@ int runClient(struct client *client) {
     pollfds[1].fd = STDIN_FILENO;
     pollfds[1].events = POLLIN;
     pollfds[1].revents = 0;
-    printf("Please, login with /nick <your pseudo>\n");
     /* client loop */
     while (1) {
         fflush(stdout);
-        if (-1 == poll(pollfds, NFDS, -1)) {
+        if (-1 == poll(pollfds, NUM_FDS, -1)) {
             perror("Poll");
         }
-        for (int i = 0; i < NFDS; i++) {
+        for (int i = 0; i < NUM_FDS; i++) {
             memset(&client->packet.header, 0, sizeof(struct header));
             memset(client->buffer, 0, MSG_LEN);
             memset(client->packet.payload, 0, MSG_LEN);
