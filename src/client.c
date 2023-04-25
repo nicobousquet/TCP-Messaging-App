@@ -132,9 +132,9 @@ void extractFilename(char *tmp, char *subPath) {
     }
 }
 
-void fileRequest(struct client *client, char *dstUser, char *filename) {
+void fileRequest(struct client *client, char *destUser, char *filename) {
     /* getting path of file to send */
-    if (dstUser == NULL || filename == NULL) {
+    if (destUser == NULL || filename == NULL) {
         printf("Invalid arguments\n");
         return;
     }
@@ -147,10 +147,10 @@ void fileRequest(struct client *client, char *dstUser, char *filename) {
     char file[MSG_LEN];
     extractFilename(tmp, file);
     /* writing only name of file to send and not the whole path into the payload */
-    setPacket(&client->packet, client->userNickname, FILE_REQUEST, dstUser, file);
+    setPacket(&client->packet, client->userNickname, FILE_REQUEST, destUser, file);
     sendPacket(client->socketFd, &client->packet);
     /* Sending structure and payload */
-    printf("File request sent to %s\n", dstUser);
+    printf("File request sent to %s\n", destUser);
     return;
 }
 

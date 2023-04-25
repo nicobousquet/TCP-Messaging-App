@@ -127,35 +127,35 @@ void nicknameList(struct server *server) {
 void nicknameInfos(struct server *server) {
     strcpy(server->packet.header.nickSender, "SERVER");
     /* getting user we want information of */
-    struct user *dstUser = getUser(server, server->packet.header.infos);
+    struct user *destUser = getUser(server, server->packet.header.infos);
     /* if user does not exist */
-    if (dstUser == NULL) {
+    if (destUser == NULL) {
         strcpy(server->packet.payload, "Unknown user");
         server->packet.header.payloadLen = strlen(server->packet.payload);
     } else { /* if user exists */
-        sprintf(server->packet.payload, "%s is connected since %s with IP address %s and port number %hu", dstUser->nickname, dstUser->date, dstUser->ipAddr, dstUser->portNum);
+        sprintf(server->packet.payload, "%s is connected since %s with IP address %s and port number %hu", destUser->nickname, destUser->date, destUser->ipAddr, destUser->portNum);
         server->packet.header.payloadLen = strlen(server->packet.payload);
     }
     sendPacket(server->currentUser->socketFd, &server->packet);
 }
 
 void broadcastSend(struct server *server) {
-    for (struct user *dstUser = server->usersLinkedList; dstUser != NULL; dstUser = dstUser->next) {
-        if (strcmp(dstUser->nickname, server->currentUser->nickname) == 0) {
+    for (struct user *destUser = server->usersLinkedList; destUser != NULL; destUser = destUser->next) {
+        if (strcmp(destUser->nickname, server->currentUser->nickname) == 0) {
             strcpy(server->packet.header.nickSender, "me@all");
         } else {
             sprintf(server->packet.header.nickSender, "%s@all", server->currentUser->nickname);
         }
-        sendPacket(dstUser->socketFd, &server->packet);
+        sendPacket(destUser->socketFd, &server->packet);
     }
 }
 
 void unicastSend(struct server *server) {
-    struct user *dstUser = getUser(server, server->packet.header.infos);
+    struct user *destUser = getUser(server, server->packet.header.infos);
     /* if dest user exists */
-    if (dstUser != NULL) {
-        sendPacket(dstUser->socketFd, &server->packet);
-        sprintf(server->packet.header.nickSender, "me@%s", dstUser->nickname);
+    if (destUser != NULL) {
+        sendPacket(destUser->socketFd, &server->packet);
+        sprintf(server->packet.header.nickSender, "me@%s", destUser->nickname);
         sendPacket(server->currentUser->socketFd, &server->packet);
     } else {
         /* if dest user does not exist */
@@ -405,15 +405,15 @@ void multicastSend(struct server *server) {
 
 void fileRequest(struct server *server) {
     /* getting the user he wants to send file to */
-    struct user *dstUser = getUser(server, server->packet.header.infos);
+    struct user *destUser = getUser(server, server->packet.header.infos);
     /* if user does not exist */
-    if (dstUser == NULL) {
+    if (destUser == NULL) {
         server->packet.header.type = DEFAULT;
         sprintf(server->packet.payload, "%s does not exist", server->packet.header.infos);
         server->packet.header.payloadLen = strlen(server->packet.payload);
         strcpy(server->packet.header.nickSender, "SERVER");
         sendPacket(server->currentUser->socketFd, &server->packet);
-    } else if (dstUser == server->currentUser) {
+    } else if (destUser == server->currentUser) {
         server->packet.header.type = DEFAULT;
         strcpy(server->packet.payload, "You cannot send a file to yourself");
         server->packet.header.payloadLen = strlen(server->packet.payload);
@@ -423,21 +423,21 @@ void fileRequest(struct server *server) {
         strcpy(server->packet.header.infos, server->packet.header.nickSender);
         server->packet.header.payloadLen = strlen(server->packet.payload);
         strcpy(server->packet.header.nickSender, "SERVER");
-        sendPacket(dstUser->socketFd, &server->packet);
+        sendPacket(destUser->socketFd, &server->packet);
     }
 }
 
 void fileAccept(struct server *server) {
-    struct user *dstUser = getUser(server, server->packet.header.infos);
-    sendPacket(dstUser->socketFd, &server->packet);
+    struct user *destUser = getUser(server, server->packet.header.infos);
+    sendPacket(destUser->socketFd, &server->packet);
 }
 
 void fileReject(struct server *server) {
-    struct user *dstUser = getUser(server, server->packet.header.infos);
+    struct user *destUser = getUser(server, server->packet.header.infos);
     sprintf(server->packet.payload, "%s cancelled file transfer", server->currentUser->nickname);
     server->packet.header.payloadLen = strlen(server->packet.payload);
     strcpy(server->packet.header.nickSender, "SERVER");
-    sendPacket(dstUser->socketFd, &server->packet);
+    sendPacket(destUser->socketFd, &server->packet);
 }
 
 int processRequest(struct server *server) {
