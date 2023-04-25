@@ -166,6 +166,16 @@ void unicastSend(struct server *server) {
     }
 }
 
+struct chatroom *chatroomInit(char *chatroomName, struct user *firstUser) {
+    struct chatroom *newChatroom = malloc(sizeof(struct chatroom));
+    memset(newChatroom, 0, sizeof(struct chatroom));
+    strcpy(newChatroom->name, chatroomName);
+    newChatroom->usersList[0] = firstUser;
+    firstUser->inChatroom = 1;
+    newChatroom->numUsersInChatroom = 1;
+    return newChatroom;
+}
+
 void multicastCreate(struct server *server) {
     /* we check if chatroom name is not used yet */
     if (server->numChatrooms != 0) {
@@ -213,12 +223,7 @@ void multicastCreate(struct server *server) {
     /* creating a new chatroom */
     for (int j = 0; j < NUM_MAX_CHATROOMS; j++) {
         if (server->chatroomsList[j] == NULL) {
-            struct chatroom *newChatroom = malloc(sizeof(struct chatroom));
-            memset(newChatroom, 0, sizeof(struct chatroom));
-            strcpy(newChatroom->name, server->packet.header.infos);
-            newChatroom->usersList[0] = server->currentUser;
-            server->currentUser->inChatroom = 1;
-            newChatroom->numUsersInChatroom = 1;
+            struct chatroom *newChatroom = chatroomInit(server->packet.header.infos, server->currentUser);
             server->chatroomsList[j] = newChatroom;
             server->numChatrooms++;
             sprintf(server->packet.payload, "You have created channel %s", newChatroom->name);

@@ -398,8 +398,7 @@ void fileRequestFromServer(struct client *client) {
             fileReject(client);
             return;
         } else {
-            printf("Please only Y or N !\n");
-            break;
+            printf("--> Please only Y or N !\n");
         }
     }
 }
