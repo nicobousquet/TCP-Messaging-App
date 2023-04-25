@@ -34,7 +34,7 @@ struct user {
     int socketFd;
     char ipAddr[16];
     u_short portNum;
-    char pseudo[NICK_LEN];
+    char nickname[NICK_LEN];
     int loggedIn;
     char date[INFOS_LEN]; /* date of connection */
     int inChatroom; /* 0 if user is not in a chatroom, else 1 */

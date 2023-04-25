@@ -10,58 +10,58 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-void nicknameNew(struct client *client, char *newPseudo) {
-    if (newPseudo == NULL) {
-        printf("Please, choose a pseudo !\n");
+void nicknameNew(struct client *client, char *newNickname) {
+    if (newNickname == NULL) {
+        printf("Please, choose a nickname !\n");
         return;
     }
-    unsigned long pseudoLength = strlen(newPseudo);
+    unsigned long nicknameLength = strlen(newNickname);
     /* checking length */
-    unsigned long correctPseudoLength = strspn(newPseudo, "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890");
-    if (pseudoLength > NICK_LEN) {
-        printf("Too long pseudo\n");
+    unsigned long correctNicknameLength = strspn(newNickname, "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890");
+    if (nicknameLength > NICK_LEN) {
+        printf("Too long nickname\n");
         return;
     }
     /* checking types of characters */
-    if (correctPseudoLength != pseudoLength) {
-        printf("Pseudo with non authorized characters, please, only numbers and letters\n");
+    if (correctNicknameLength != nicknameLength) {
+        printf("Nickname with non authorized characters, please, only numbers and letters\n");
         return;
     }
 
-    setPacket(&client->packet, client->userPseudo, NICKNAME_NEW, newPseudo, "\0");
+    setPacket(&client->packet, client->userNickname, NICKNAME_NEW, newNickname, "\0");
     sendPacket(client->socketFd, &client->packet);
     return;
 }
 
 void help() {
     printf("            ****** HELP ******\n");
-    printf("- /nick <pseudo> to change pseudo\n");
-    printf("- /whois <pseudo> to have informations on user <pseudo>\n");
+    printf("- /nick <nickname> to change nickname\n");
+    printf("- /whois <nickname> to have informations on user <nickname>\n");
     printf("- /who to have the list of online users\n");
     printf("- /msgall to send a message to all user\n");
-    printf("- /msg <pseudo> to send a message to user <pseudo>\n");
+    printf("- /msg <nickname> to send a message to user <nickname>\n");
     printf("- /create <channelName> to create a chat group <channelName>\n");
     printf("- /channel_list to have the list of all online chat groups\n");
     printf("- /join <channelName> to join a chat group <channelName>\n");
     printf("- /quit <channelName> to quit chat group <channelName>\n");
     printf("- /quit to disconnect\n");
-    printf("- /send <pseudo> <\"filename\"> to send a file <filename> to user <pseudo>\n");
+    printf("- /send <nickname> <\"filename\"> to send a file <filename> to user <nickname>\n");
 }
 
 void nicknameList(struct client *client) {
-    setPacket(&client->packet, client->userPseudo, NICKNAME_LIST, "\0", "\0");
+    setPacket(&client->packet, client->userNickname, NICKNAME_LIST, "\0", "\0");
     sendPacket(client->socketFd, &client->packet);
     return;
 }
 
 void nicknameInfos(struct client *client, char *username) {
-    setPacket(&client->packet, client->userPseudo, NICKNAME_INFOS, username, "\0");
+    setPacket(&client->packet, client->userNickname, NICKNAME_INFOS, username, "\0");
     sendPacket(client->socketFd, &client->packet);
     return;
 }
 
 void broadcastSend(struct client *client, char *payload) {
-    setPacket(&client->packet, client->userPseudo, BROADCAST_SEND, "\0", payload);
+    setPacket(&client->packet, client->userNickname, BROADCAST_SEND, "\0", payload);
     sendPacket(client->socketFd, &client->packet);
     return;
 }
@@ -73,7 +73,7 @@ void unicastSend(struct client *client, char *destUsername, char *payload) {
         return;
     }
 
-    setPacket(&client->packet, client->userPseudo, UNICAST_SEND, destUsername, payload);
+    setPacket(&client->packet, client->userNickname, UNICAST_SEND, destUsername, payload);
     sendPacket(client->socketFd, &client->packet);
     return;
 }
@@ -93,19 +93,19 @@ void multicastCreate(struct client *client, char *channelName) {
         return;
     }
 
-    setPacket(&client->packet, client->userPseudo, MULTICAST_CREATE, channelName, "\0");
+    setPacket(&client->packet, client->userNickname, MULTICAST_CREATE, channelName, "\0");
     sendPacket(client->socketFd, &client->packet);
     return;
 }
 
 void multicastList(struct client *client) {
-    setPacket(&client->packet, client->userPseudo, MULTICAST_LIST, "\0", "\0");
+    setPacket(&client->packet, client->userNickname, MULTICAST_LIST, "\0", "\0");
     sendPacket(client->socketFd, &client->packet);
     return;
 }
 
 void multicastJoin(struct client *client, char *chatroom) {
-    setPacket(&client->packet, client->userPseudo, MULTICAST_JOIN, chatroom, "\0");
+    setPacket(&client->packet, client->userNickname, MULTICAST_JOIN, chatroom, "\0");
     sendPacket(client->socketFd, &client->packet);
     return;
 }
@@ -116,7 +116,7 @@ int quit(struct client *client, char *channelName) {
         /* quitting the server */
         return 0;
     }
-    setPacket(&client->packet, client->userPseudo, MULTICAST_QUIT, channelName, "\0");
+    setPacket(&client->packet, client->userNickname, MULTICAST_QUIT, channelName, "\0");
     sendPacket(client->socketFd, &client->packet);
     return 1;
 }
@@ -147,7 +147,7 @@ void fileRequest(struct client *client, char *dstUser, char *filename) {
     char file[MSG_LEN];
     extractFilename(tmp, file);
     /* writing only name of file to send and not the whole path into the payload */
-    setPacket(&client->packet, client->userPseudo, FILE_REQUEST, dstUser, file);
+    setPacket(&client->packet, client->userNickname, FILE_REQUEST, dstUser, file);
     sendPacket(client->socketFd, &client->packet);
     /* Sending structure and payload */
     printf("File request sent to %s\n", dstUser);
@@ -161,7 +161,7 @@ void multicastSend(struct client *client, char *phrase, char *firstWord) {
         strcpy(client->packet.payload, firstWord);
     }
 
-    setPacket(&client->packet, client->userPseudo, MULTICAST_SEND, "\0", client->packet.payload);
+    setPacket(&client->packet, client->userNickname, MULTICAST_SEND, "\0", client->packet.payload);
     sendPacket(client->socketFd, &client->packet);
     return;
 }
@@ -229,7 +229,7 @@ int fromStdIn(struct client *client) {
 }
 
 void nicknameNewFromServer(struct client *client) {
-    strcpy(client->userPseudo, client->packet.header.infos);
+    strcpy(client->userNickname, client->packet.header.infos);
 }
 
 /* creation of a server socket */
@@ -278,7 +278,7 @@ void fileAcceptFromStdIn(struct client *client, char *fileSender) {
     struct client *serverP2P = serverP2PInit(listeningPort);
     sprintf(serverP2P->packet.payload, "%s:%hu", serverP2P->ipAddr, serverP2P->portNum);
     /* sending ip address and port for the client to connect */
-    setPacket(&serverP2P->packet, client->userPseudo, FILE_ACCEPT, fileSender, serverP2P->packet.payload);
+    setPacket(&serverP2P->packet, client->userNickname, FILE_ACCEPT, fileSender, serverP2P->packet.payload);
     sendPacket(client->socketFd, &serverP2P->packet);
     struct sockaddr client_addr;
     memset(&client_addr, 0, sizeof(client_addr));
@@ -370,7 +370,7 @@ void fileAcceptFromStdIn(struct client *client, char *fileSender) {
 
 void fileReject(struct client *client) {
     memset(client->fileToSend, 0, NICK_LEN);
-    setPacket(&client->packet, client->userPseudo, FILE_REJECT, client->packet.header.infos, client->buffer);
+    setPacket(&client->packet, client->userNickname, FILE_REJECT, client->packet.header.infos, client->buffer);
     /* Sending structure and payload */
     sendPacket(client->socketFd, &client->packet);
     printf("You rejected the file transfer\n");
@@ -482,7 +482,7 @@ void fileAcceptFromServer(struct client *client) {
     long size = sb.st_size;
     sprintf(clientP2P->packet.payload, "%lu", size);
     /* sending the size of the file to be sent */
-    setPacket(&clientP2P->packet, client->userPseudo, FILE_SEND, "\0", clientP2P->packet.payload);
+    setPacket(&clientP2P->packet, client->userNickname, FILE_SEND, "\0", clientP2P->packet.payload);
     sendPacket(clientP2P->socketFd, &clientP2P->packet);
     memset(clientP2P->packet.payload, 0, MSG_LEN);
 
@@ -547,7 +547,7 @@ int fromServer(struct client *client) {
     }
 
     switch (client->packet.header.type) {
-        /* changing pseudo */
+        /* changing nickname */
         case NICKNAME_NEW:
             nicknameNewFromServer(client);
             break;
@@ -602,7 +602,7 @@ int runClient(struct client *client) {
             memset(client->packet.payload, 0, MSG_LEN);
             /* if data comes from keyboard */
             if (pollfds[i].fd == STDIN_FILENO && pollfds[i].revents & POLLIN) {
-                strcpy(client->packet.header.nickSender, client->userPseudo);
+                strcpy(client->packet.header.nickSender, client->userNickname);
                 if (!fromStdIn(client)) {
                     disconnectFromServer(pollfds);
                     return 1;

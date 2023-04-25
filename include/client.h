@@ -12,7 +12,7 @@ struct client {
     u_short portNum;
     struct packet packet;
     char buffer[MSG_LEN];
-    char userPseudo[NICK_LEN];
+    char userNickname[NICK_LEN];
     char fileToSend[NICK_LEN];
     char fileToReceive[NICK_LEN];
 };
