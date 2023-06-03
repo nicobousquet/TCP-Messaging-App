@@ -3,18 +3,19 @@
 
 #define NUM_FDS 2
 
-#include "common.h"
+#include "packet.h"
+#include <sys/types.h>
 #include <poll.h>
 
-struct client {
-    int socketFd;
-    char ipAddr[16];
-    u_short portNum;
-    struct packet packet;
+struct Client {
+    int fd_socket;
+    char ip_addr[16];
+    u_short port_num;
+    struct Packet packet;
     char buffer[MSG_LEN];
-    char userNickname[NICK_LEN];
-    char fileToSend[NICK_LEN];
-    char fileToReceive[NICK_LEN];
+    char nickname[NICK_LEN];
+    char file_to_send[NICK_LEN];
+    char file_to_receive[NICK_LEN];
 };
 
 #endif //CLIENT_H
