@@ -1,10 +1,10 @@
 #include "../include/user_node.h"
-#include "../include/stdlib.h"
-#include <../include/string.h>
+#include <stdlib.h>
+#include <string.h>
 
-struct UserNode *user_node_init(int fd_socket, char *ip_addr, u_short port_num, char *nickname, char *date) {
+struct UserNode *user_node_init(int socket_fd, char *ip_addr, u_short port_num, char *nickname, char *date) {
     struct UserNode *user = malloc(sizeof(struct UserNode));
-    user->fd_socket = fd_socket;
+    user->socket_fd = socket_fd;
     strcpy(user->ip_addr, ip_addr);
     user->port_num = port_num;
     strcpy(user->nickname, nickname);

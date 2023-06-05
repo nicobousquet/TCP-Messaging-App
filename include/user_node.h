@@ -6,7 +6,7 @@
 
 /* structure of a user */
 struct UserNode {
-    int fd_socket;
+    int socket_fd;
     char ip_addr[16];
     u_short port_num;
     char nickname[NICK_LEN];
@@ -16,7 +16,7 @@ struct UserNode {
     struct UserNode *next; /* next user */
 };
 
-struct UserNode *user_node_init(int fd_socket, char *ip_addr, u_short port_num, char *nickname, char *date);
+struct UserNode *user_node_init(int socket_fd, char *ip_addr, u_short port_num, char *nickname, char *date);
 
 void user_node_add(struct UserNode **linked_list_users, struct UserNode *new_user_node);
 

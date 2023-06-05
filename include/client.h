@@ -8,7 +8,7 @@
 #include <poll.h>
 
 struct Client {
-    int fd_socket;
+    int socket_fd;
     char ip_addr[16];
     u_short port_num;
     struct Packet packet;

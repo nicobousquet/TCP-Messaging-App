@@ -5,7 +5,7 @@
 #include <sys/types.h>
 
 struct Peer {
-    int fd_socket;
+    int socket_fd;
     u_short port_num;
     char ip_addr[16];
     char nickname[NICK_LEN];

@@ -19,7 +19,7 @@ struct UserNode *get_user(struct Server *server, char *nickname_user) {
     return NULL;
 }
 
-void nickname_new_res(struct Server *server) {
+void nickname_new(struct Server *server) {
     strcpy(server->packet.header.from, "SERVER");
     for (struct UserNode *user = server->linked_list_users; user != NULL; user = user->next) {
         /* looking if nickname used by another user */
@@ -27,7 +27,7 @@ void nickname_new_res(struct Server *server) {
             strcpy(server->packet.payload, "Nickname used by another user");
             server->packet.header.len_payload = strlen(server->packet.payload);
             server->packet.header.type = DEFAULT;
-            packet_send(&server->packet, server->current_user->fd_socket);
+            packet_send(&server->packet, server->current_user->socket_fd);
             return;
         }
     }
@@ -41,10 +41,10 @@ void nickname_new_res(struct Server *server) {
     }
 
     server->packet.header.len_payload = strlen(server->packet.payload);
-    packet_send(&server->packet, server->current_user->fd_socket);
+    packet_send(&server->packet, server->current_user->socket_fd);
 }
 
-void nickname_list_res(struct Server *server) {
+void nickname_list(struct Server *server) {
     strcpy(server->packet.header.from, "SERVER");
     strcpy(server->packet.payload, "Online users are:\n");
     for (struct UserNode *user = server->linked_list_users; user != NULL; user = user->next) {
@@ -52,10 +52,10 @@ void nickname_list_res(struct Server *server) {
     }
     server->packet.payload[strlen(server->packet.payload) - 1] = '\0';
     server->packet.header.len_payload = strlen(server->packet.payload);
-    packet_send(&server->packet, server->current_user->fd_socket);
+    packet_send(&server->packet, server->current_user->socket_fd);
 }
 
-void nickname_infos_res(struct Server *server) {
+void nickname_infos(struct Server *server) {
     strcpy(server->packet.header.from, "SERVER");
     /* getting user we want information of */
     struct UserNode *nickname_dest = get_user(server, server->packet.header.infos);
@@ -67,37 +67,37 @@ void nickname_infos_res(struct Server *server) {
         sprintf(server->packet.payload, "%s is connected since %s with IP address %s and port number %hu", nickname_dest->nickname, nickname_dest->date, nickname_dest->ip_addr, nickname_dest->port_num);
         server->packet.header.len_payload = strlen(server->packet.payload);
     }
-    packet_send(&server->packet, server->current_user->fd_socket);
+    packet_send(&server->packet, server->current_user->socket_fd);
 }
 
-void broadcast_send_res(struct Server *server) {
+void broadcast_send(struct Server *server) {
     for (struct UserNode *nickname_dest = server->linked_list_users; nickname_dest != NULL; nickname_dest = nickname_dest->next) {
         if (strcmp(nickname_dest->nickname, server->current_user->nickname) == 0) {
             strcpy(server->packet.header.from, "me@all");
         } else {
             sprintf(server->packet.header.from, "%s@all", server->current_user->nickname);
         }
-        packet_send(&server->packet, nickname_dest->fd_socket);
+        packet_send(&server->packet, nickname_dest->socket_fd);
     }
 }
 
-void unicast_send_res(struct Server *server) {
+void unicast_send(struct Server *server) {
     struct UserNode *nickname_dest = get_user(server, server->packet.header.infos);
     /* if dest user exists */
     if (nickname_dest != NULL) {
-        packet_send(&server->packet, nickname_dest->fd_socket);
+        packet_send(&server->packet, nickname_dest->socket_fd);
         sprintf(server->packet.header.from, "me@%s", nickname_dest->nickname);
-        packet_send(&server->packet, server->current_user->fd_socket);
+        packet_send(&server->packet, server->current_user->socket_fd);
     } else {
         /* if dest user does not exist */
         sprintf(server->packet.payload, "User %s does not exist", server->packet.header.infos);
         strcpy(server->packet.header.from, "SERVER");
         server->packet.header.len_payload = strlen(server->packet.payload);
-        packet_send(&server->packet, server->current_user->fd_socket);
+        packet_send(&server->packet, server->current_user->socket_fd);
     }
 }
 
-void multicast_create_res(struct Server *server) {
+void multicast_create(struct Server *server) {
     /* we check if chatroom name is not used yet */
     if (server->num_chatrooms != 0) {
         for (int j = 0; j < NUM_MAX_CHATROOMS; j++) {
@@ -107,7 +107,7 @@ void multicast_create_res(struct Server *server) {
                     strcpy(server->packet.payload, "Chat room name used by other users, please choose a new chatroom name");
                     server->packet.header.len_payload = strlen(server->packet.payload);
                     strcpy(server->packet.header.from, "SERVER");
-                    packet_send(&server->packet, server->current_user->fd_socket);
+                    packet_send(&server->packet, server->current_user->socket_fd);
                     return;
                 }
             }
@@ -122,13 +122,13 @@ void multicast_create_res(struct Server *server) {
             sprintf(server->packet.payload, "You have quit the channel %s", (*chatroom)->name);
             server->packet.header.len_payload = strlen(server->packet.payload);
             strcpy(server->packet.header.from, "SERVER");
-            packet_send(&server->packet, server->current_user->fd_socket);
+            packet_send(&server->packet, server->current_user->socket_fd);
             for (int l = 0; l < NUM_MAX_USERS; l++) {
                 if ((*chatroom)->list_users[l] != NULL) {
                     sprintf(server->packet.payload, "%s has quit the channel", server->current_user->nickname);
                     server->packet.header.len_payload = strlen(server->packet.payload);
                     sprintf(server->packet.header.from, "SERVER@%s", (*chatroom)->name);
-                    packet_send(&server->packet, (*chatroom)->list_users[l]->fd_socket);
+                    packet_send(&server->packet, (*chatroom)->list_users[l]->socket_fd);
                 }
             }
             /* if chatroom is empty, destroying it */
@@ -136,7 +136,7 @@ void multicast_create_res(struct Server *server) {
                 sprintf(server->packet.payload, "You were the last user in %s, this channel has been destroyed", (*chatroom)->name);
                 server->packet.header.len_payload = strlen(server->packet.payload);
                 strcpy(server->packet.header.from, "SERVER");
-                packet_send(&server->packet, server->current_user->fd_socket);
+                packet_send(&server->packet, server->current_user->socket_fd);
                 free(*chatroom);
                 *chatroom = NULL;
                 server->num_chatrooms--;
@@ -153,13 +153,13 @@ void multicast_create_res(struct Server *server) {
             sprintf(server->packet.payload, "You have created channel %s", new_chatroom->name);
             server->packet.header.len_payload = strlen(server->packet.payload);
             strcpy(server->packet.header.from, "SERVER");
-            packet_send(&server->packet, server->current_user->fd_socket);
+            packet_send(&server->packet, server->current_user->socket_fd);
             return;
         }
     }
 }
 
-void multicast_list_res(struct Server *server) {
+void multicast_list(struct Server *server) {
     if (server->num_chatrooms != 0) {
         strcpy(server->packet.payload, "Online chatrooms are:\n");
         for (int j = 0; j < NUM_MAX_CHATROOMS; j++) {
@@ -170,7 +170,7 @@ void multicast_list_res(struct Server *server) {
         server->packet.payload[strlen(server->packet.payload) - 1] = '\0';
         server->packet.header.len_payload = strlen(server->packet.payload);
         strcpy(server->packet.header.from, "SERVER");
-        packet_send(&server->packet, server->current_user->fd_socket);
+        packet_send(&server->packet, server->current_user->socket_fd);
         return;
     }
 
@@ -178,10 +178,10 @@ void multicast_list_res(struct Server *server) {
     server->packet.payload[strlen(server->packet.payload) - 1] = '\0';
     server->packet.header.len_payload = strlen(server->packet.payload);
     strcpy(server->packet.header.from, "SERVER");
-    packet_send(&server->packet, server->current_user->fd_socket);
+    packet_send(&server->packet, server->current_user->socket_fd);
 }
 
-void multicast_join_res(struct Server *server) {
+void multicast_join(struct Server *server) {
     if (server->num_chatrooms != 0) {
         /* getting chatroom user wants to join */
         struct Chatroom **chatroom_to_join = chatroom_get_by_name(server->list_chatrooms, server->packet.header.infos);
@@ -197,7 +197,7 @@ void multicast_join_res(struct Server *server) {
                             strcpy(server->packet.payload, "You were yet in this chatroom");
                             server->packet.header.len_payload = strlen(server->packet.payload);
                             strcpy(server->packet.header.from, "SERVER");
-                            packet_send(&server->packet, server->current_user->fd_socket);
+                            packet_send(&server->packet, server->current_user->socket_fd);
                             return;
                         }
                     }
@@ -207,13 +207,13 @@ void multicast_join_res(struct Server *server) {
                     sprintf(server->packet.payload, "You have quit the channel %s", (*current_chatroom)->name);
                     server->packet.header.len_payload = strlen(server->packet.payload);
                     strcpy(server->packet.header.from, "SERVER");
-                    packet_send(&server->packet, server->current_user->fd_socket);
+                    packet_send(&server->packet, server->current_user->socket_fd);
                     for (int l = 0; l < NUM_MAX_USERS; l++) {
                         if ((*current_chatroom)->list_users[l] != NULL) {
                             sprintf(server->packet.payload, "%s has quit the channel", server->current_user->nickname);
                             server->packet.header.len_payload = strlen(server->packet.payload);
                             sprintf(server->packet.header.from, "SERVER@%s", (*current_chatroom)->name);
-                            packet_send(&server->packet, (*current_chatroom)->list_users[l]->fd_socket);
+                            packet_send(&server->packet, (*current_chatroom)->list_users[l]->socket_fd);
                         }
                     }
                     /* if chatroom is empty, destroying it */
@@ -221,7 +221,7 @@ void multicast_join_res(struct Server *server) {
                         sprintf(server->packet.payload, "You were the last user in %s, this channel has been destroyed", (*current_chatroom)->name);
                         server->packet.header.len_payload = strlen(server->packet.payload);
                         strcpy(server->packet.header.from, "SERVER");
-                        packet_send(&server->packet, server->current_user->fd_socket);
+                        packet_send(&server->packet, server->current_user->socket_fd);
                         free(*current_chatroom);
                         *current_chatroom = NULL;
                         server->num_chatrooms--;
@@ -238,14 +238,14 @@ void multicast_join_res(struct Server *server) {
                     sprintf(server->packet.payload, "You have joined %s", server->packet.header.infos);
                     server->packet.header.len_payload = strlen(server->packet.payload);
                     strcpy(server->packet.header.from, "SERVER");
-                    packet_send(&server->packet, server->current_user->fd_socket);
+                    packet_send(&server->packet, server->current_user->socket_fd);
                     joined = 1;
                 } else if ((*chatroom_to_join)->list_users[k] != NULL) {
                     /* informing the other users in the chatroom that a new user joined*/
                     sprintf(server->packet.payload, "%s has joined the channel", server->current_user->nickname);
                     server->packet.header.len_payload = strlen(server->packet.payload);
                     sprintf(server->packet.header.from, "SERVER@%s", (*chatroom_to_join)->name);
-                    packet_send(&server->packet, (*chatroom_to_join)->list_users[k]->fd_socket);
+                    packet_send(&server->packet, (*chatroom_to_join)->list_users[k]->socket_fd);
                 }
             }
             return;
@@ -255,11 +255,11 @@ void multicast_join_res(struct Server *server) {
     sprintf(server->packet.payload, "Channel %s does not exist", server->packet.header.infos);
     server->packet.header.len_payload = strlen(server->packet.payload);
     strcpy(server->packet.header.from, "SERVER");
-    packet_send(&server->packet, server->current_user->fd_socket);
+    packet_send(&server->packet, server->current_user->socket_fd);
     return;
 }
 
-void multicast_quit_res(struct Server *server) {
+void multicast_quit(struct Server *server) {
     /* getting chatroom user wants to quit */
     if (server->num_chatrooms != 0) {
         struct Chatroom **chatroom = chatroom_get_by_name(server->list_chatrooms, server->packet.header.infos);
@@ -271,14 +271,14 @@ void multicast_quit_res(struct Server *server) {
                 sprintf(server->packet.payload, "You have quit the channel %s", (*chatroom)->name);
                 server->packet.header.len_payload = strlen(server->packet.payload);
                 strcpy(server->packet.header.from, "SERVER");
-                packet_send(&server->packet, server->current_user->fd_socket);
+                packet_send(&server->packet, server->current_user->socket_fd);
 
                 for (int l = 0; l < NUM_MAX_USERS; l++) {
                     if ((*chatroom)->list_users[l] != NULL) {
                         sprintf(server->packet.payload, "%s has quit the channel", server->current_user->nickname);
                         server->packet.header.len_payload = strlen(server->packet.payload);
                         sprintf(server->packet.header.from, "SERVER@%s", (*chatroom)->name);
-                        packet_send(&server->packet, (*chatroom)->list_users[l]->fd_socket);
+                        packet_send(&server->packet, (*chatroom)->list_users[l]->socket_fd);
                     }
                 }
                 /* if chatroom is now empty */
@@ -286,7 +286,7 @@ void multicast_quit_res(struct Server *server) {
                     sprintf(server->packet.payload, "You were the last user in this channel, %s has been destroyed", (*chatroom)->name);
                     server->packet.header.len_payload = strlen(server->packet.payload);
                     strcpy(server->packet.header.from, "SERVER");
-                    packet_send(&server->packet, server->current_user->fd_socket);
+                    packet_send(&server->packet, server->current_user->socket_fd);
                     free(*chatroom);
                     *chatroom = NULL;
                     server->num_chatrooms--;
@@ -296,7 +296,7 @@ void multicast_quit_res(struct Server *server) {
                 sprintf(server->packet.payload, "You were not in chatroom %s", (*chatroom)->name);
                 server->packet.header.len_payload = strlen(server->packet.payload);
                 strcpy(server->packet.header.from, "SERVER");
-                packet_send(&server->packet, server->current_user->fd_socket);
+                packet_send(&server->packet, server->current_user->socket_fd);
             }
             return;
         }
@@ -305,16 +305,16 @@ void multicast_quit_res(struct Server *server) {
     sprintf(server->packet.payload, "Channel %s does not exist", server->packet.header.infos);
     server->packet.header.len_payload = strlen(server->packet.payload);
     strcpy(server->packet.header.from, "SERVER");
-    packet_send(&server->packet, server->current_user->fd_socket);
+    packet_send(&server->packet, server->current_user->socket_fd);
 }
 
-void multicast_send_res(struct Server *server) {
+void multicast_send(struct Server *server) {
     /* if user is not in a chatroom*/
     if (server->current_user->is_in_chatroom == 0) {
         /* message type is ECHO_SEND*/
         server->packet.header.type = ECHO_SEND;
         strcpy(server->packet.header.from, "SERVER");
-        packet_send(&server->packet, server->current_user->fd_socket);
+        packet_send(&server->packet, server->current_user->socket_fd);
     } else {
         /* getting the chatroom the user wants to send the message in */
         struct Chatroom **chatroom = chatroom_get_by_user(server->list_chatrooms, server->current_user);
@@ -326,13 +326,13 @@ void multicast_send_res(struct Server *server) {
                 } else {
                     sprintf(server->packet.header.from, "%s@%s", server->current_user->nickname, (*chatroom)->name);
                 }
-                packet_send(&server->packet, (*chatroom)->list_users[l]->fd_socket);
+                packet_send(&server->packet, (*chatroom)->list_users[l]->socket_fd);
             }
         }
     }
 }
 
-void file_request_res(struct Server *server) {
+void file_request(struct Server *server) {
     /* getting the user he wants to send file to */
     struct UserNode *nickname_dest = get_user(server, server->packet.header.infos);
     /* if user does not exist */
@@ -341,32 +341,32 @@ void file_request_res(struct Server *server) {
         sprintf(server->packet.payload, "%s does not exist", server->packet.header.infos);
         server->packet.header.len_payload = strlen(server->packet.payload);
         strcpy(server->packet.header.from, "SERVER");
-        packet_send(&server->packet, server->current_user->fd_socket);
+        packet_send(&server->packet, server->current_user->socket_fd);
     } else if (nickname_dest == server->current_user) {
         server->packet.header.type = DEFAULT;
         strcpy(server->packet.payload, "You cannot send a file to yourself");
         server->packet.header.len_payload = strlen(server->packet.payload);
         strcpy(server->packet.header.from, "SERVER");
-        packet_send(&server->packet, server->current_user->fd_socket);
+        packet_send(&server->packet, server->current_user->socket_fd);
     } else {
         strcpy(server->packet.header.infos, server->packet.header.from);
         server->packet.header.len_payload = strlen(server->packet.payload);
         strcpy(server->packet.header.from, "SERVER");
-        packet_send(&server->packet, nickname_dest->fd_socket);
+        packet_send(&server->packet, nickname_dest->socket_fd);
     }
 }
 
-void file_accept_res(struct Server *server) {
+void file_accept(struct Server *server) {
     struct UserNode *nickname_dest = get_user(server, server->packet.header.infos);
-    packet_send(&server->packet, nickname_dest->fd_socket);
+    packet_send(&server->packet, nickname_dest->socket_fd);
 }
 
-void file_reject_res(struct Server *server) {
+void file_reject(struct Server *server) {
     struct UserNode *nickname_dest = get_user(server, server->packet.header.infos);
     sprintf(server->packet.payload, "%s cancelled file transfer", server->current_user->nickname);
     server->packet.header.len_payload = strlen(server->packet.payload);
     strcpy(server->packet.header.from, "SERVER");
-    packet_send(&server->packet, nickname_dest->fd_socket);
+    packet_send(&server->packet, nickname_dest->socket_fd);
 }
 
 int handle_reqs(struct Server *server) {
@@ -376,12 +376,12 @@ int handle_reqs(struct Server *server) {
     memset(server->packet.payload, 0, MSG_LEN);
     /* Receiving structure */
     /* if client disconnected */
-    if ((recv(server->current_user->fd_socket, &server->packet.header, sizeof(struct Header), MSG_WAITALL)) <= 0) {
+    if ((recv(server->current_user->socket_fd, &server->packet.header, sizeof(struct Header), MSG_WAITALL)) <= 0) {
         return 0;
     }
     /* Receiving message */
     memset(server->packet.payload, 0, MSG_LEN);
-    if (server->packet.header.len_payload != 0 && recv(server->current_user->fd_socket, server->packet.payload, server->packet.header.len_payload, MSG_WAITALL) <= 0) {
+    if (server->packet.header.len_payload != 0 && recv(server->current_user->socket_fd, server->packet.payload, server->packet.header.len_payload, MSG_WAITALL) <= 0) {
         perror("recv");
         return 1;
     }
@@ -390,62 +390,62 @@ int handle_reqs(struct Server *server) {
 
     if (!server->current_user->is_logged_in && server->packet.header.type != NICKNAME_NEW) {
         packet_set(&server->packet, "SERVER", DEFAULT, "", "Please, login with /nick <your nickname>");
-        packet_send(&server->packet, server->current_user->fd_socket);
+        packet_send(&server->packet, server->current_user->socket_fd);
         return 1;
     }
 
     switch (server->packet.header.type) {
             /* if user wants to change/create nickname */
         case NICKNAME_NEW:
-            nickname_new_res(server);
+            nickname_new(server);
             return 1;
             /* if user wants to see the list of other connected users */
         case NICKNAME_LIST:
-            nickname_list_res(server);
+            nickname_list(server);
             return 1;
             /* if user wants to know the ip address, remote port number and connection date of another user */
         case NICKNAME_INFOS:
-            nickname_infos_res(server);
+            nickname_infos(server);
             return 1;
             /* if user wants to send a message to all the users */
         case BROADCAST_SEND:
-            broadcast_send_res(server);
+            broadcast_send(server);
             return 1;
             /* if user wants to send a message to another specific user */
         case UNICAST_SEND:
-            unicast_send_res(server);
+            unicast_send(server);
             return 1;
             /* if user wants to create a chatroom */
         case MULTICAST_CREATE:
-            multicast_create_res(server);
+            multicast_create(server);
             return 1;
             /* if user wants to have the list of all the chatrooms created */
         case MULTICAST_LIST:
-            multicast_list_res(server);
+            multicast_list(server);
             return 1;
             /* if user wants to join a chatroom */
         case MULTICAST_JOIN:
-            multicast_join_res(server);
+            multicast_join(server);
             return 1;
             /* if user wants to quit a chatroom */
         case MULTICAST_QUIT:
-            multicast_quit_res(server);
+            multicast_quit(server);
             return 1;
             /* if user wants to send a message in the chatroom */
         case MULTICAST_SEND:
-            multicast_send_res(server);
+            multicast_send(server);
             return 1;
             /* if user wants to send a file to another user */
         case FILE_REQUEST:
-            file_request_res(server);
+            file_request(server);
             return 1;
             /* if user accept file transfer */
         case FILE_ACCEPT:
-            file_accept_res(server);
+            file_accept(server);
             return 1;
             /* if user rejects file transfer */
         case FILE_REJECT:
-            file_reject_res(server);
+            file_reject(server);
             return 1;
         default:
             return 1;
@@ -453,7 +453,7 @@ int handle_reqs(struct Server *server) {
 }
 
 void disconnect_user(struct Server *server, struct UserNode *user_to_disconnect) {
-    printf("%s (%s:%hu) on socket %d has disconnected from server\n", user_to_disconnect->nickname, user_to_disconnect->ip_addr, user_to_disconnect->port_num, user_to_disconnect->fd_socket);
+    printf("%s (%s:%hu) on socket %d has disconnected from server\n", user_to_disconnect->nickname, user_to_disconnect->ip_addr, user_to_disconnect->port_num, user_to_disconnect->socket_fd);
     /* if user is in a chatroom
        we remove the user from the chatroom */
     if (user_to_disconnect->is_in_chatroom == 1) {
@@ -467,7 +467,7 @@ void disconnect_user(struct Server *server, struct UserNode *user_to_disconnect)
                 sprintf(server->packet.payload, "%s has quit the channel", user_to_disconnect->nickname);
                 server->packet.header.len_payload = strlen(server->packet.payload);
                 strcpy(server->packet.header.from, "SERVER");
-                packet_send(&server->packet, (*chatroom)->list_users[l]->fd_socket);
+                packet_send(&server->packet, (*chatroom)->list_users[l]->socket_fd);
             }
         }
         /* deleting the chatroom if chatroom is now empty */
@@ -484,7 +484,7 @@ _Noreturn void run_server(struct Server *server) {
     /* Declare array of struct pollfd */
     struct pollfd pollfds[NUM_MAX_USERS + 1];
     /* Init first slot with listening socket */
-    pollfds[0].fd = server->fd_socket;
+    pollfds[0].fd = server->socket_fd;
     pollfds[0].events = POLLIN;
     pollfds[0].revents = 0;
     /* Init remaining slot to default values */
@@ -504,47 +504,47 @@ _Noreturn void run_server(struct Server *server) {
         /* Iterate over the array of monitored struct pollfd */
         for (int i = 0; i < NUM_MAX_USERS + 1; i++) {
             /* If listening socket is active => accept new incoming connection */
-            if (pollfds[i].fd == server->fd_socket && pollfds[i].revents & POLLIN) {
+            if (pollfds[i].fd == server->socket_fd && pollfds[i].revents & POLLIN) {
                 /* accept new connection and retrieve new socket file descriptor */
                 struct sockaddr clientAddr;
                 socklen_t size = sizeof(clientAddr);
-                int fd_socket = -1;
-                if (-1 == (fd_socket = accept(server->fd_socket, &clientAddr, &size))) {
+                int socket_fd = -1;
+                if (-1 == (socket_fd = accept(server->socket_fd, &clientAddr, &size))) {
                     perror("Accept");
                 }
                 /* getting ip address and port number of the new connection */
-                getpeername(fd_socket, &clientAddr, &size);
+                getpeername(socket_fd, &clientAddr, &size);
                 struct sockaddr_in *sockaddrInPtr = (struct sockaddr_in *) &clientAddr;
                 /* adding a new user */
                 time_t ltime;
                 time(&ltime);
                 if (server->num_users < NUM_MAX_USERS) {
-                    struct UserNode *user = user_node_init(fd_socket, inet_ntoa(sockaddrInPtr->sin_addr), ntohs(sockaddrInPtr->sin_port), "", asctime(localtime(&ltime)));
-                    printf("Client (%s:%hu) connected on socket %i.\n", user->ip_addr, user->port_num, user->fd_socket);
+                    struct UserNode *user = user_node_init(socket_fd, inet_ntoa(sockaddrInPtr->sin_addr), ntohs(sockaddrInPtr->sin_port), "", asctime(localtime(&ltime)));
+                    printf("Client (%s:%hu) connected on socket %i.\n", user->ip_addr, user->port_num, user->socket_fd);
                     user_node_add(&server->linked_list_users, user);
                     server->num_users++;
                     /* store new file descriptor in available slot in the array of struct pollfd set .events to POLLIN */
                     for (int j = 1; j < NUM_MAX_USERS + 1; j++) {
                         if (pollfds[j].fd == -1) {
-                            pollfds[j].fd = fd_socket;
+                            pollfds[j].fd = socket_fd;
                             pollfds[j].events = POLLIN;
                             break;
                         }
                     }
 
                     packet_set(&server->packet, "SERVER", DEFAULT, "", "Please, login with /nick <your nickname>");
-                    packet_send(&server->packet, fd_socket);
+                    packet_send(&server->packet, socket_fd);
                 } else {
                     packet_set(&server->packet, "SERVER", DEFAULT, "", "Server at capacity! Cannot accept more connections :(");
-                    packet_send(&server->packet, fd_socket);
+                    packet_send(&server->packet, socket_fd);
                 }
                 /* Set .revents of listening socket back to default */
                 pollfds[i].revents = 0;
-            } else if (pollfds[i].fd != server->fd_socket && pollfds[i].revents & POLLHUP) {
+            } else if (pollfds[i].fd != server->socket_fd && pollfds[i].revents & POLLHUP) {
                 /* getting the user which is doing the request */
                 struct UserNode *current = NULL;
                 for (current = server->linked_list_users; current != NULL; current = current->next) {
-                    if (current->fd_socket == pollfds[i].fd) {
+                    if (current->socket_fd == pollfds[i].fd) {
                         break;
                     }
                 }
@@ -555,12 +555,12 @@ _Noreturn void run_server(struct Server *server) {
                 pollfds[i].fd = -1;
                 pollfds[i].events = 0;
                 pollfds[i].revents = 0;
-            } else if (pollfds[i].fd != server->fd_socket && pollfds[i].revents & POLLIN) {
+            } else if (pollfds[i].fd != server->socket_fd && pollfds[i].revents & POLLIN) {
                 /* If a socket different from the listening socket is active */
                 /* getting the user which is doing the request */
                 struct UserNode *current = NULL;
                 for (current = server->linked_list_users; current != NULL; current = current->next) {
-                    if (current->fd_socket == pollfds[i].fd) {
+                    if (current->socket_fd == pollfds[i].fd) {
                         break;
                     }
                 }
@@ -594,19 +594,19 @@ struct Server *server_init(char *port) {
         exit(EXIT_FAILURE);
     }
     for (rp = result; rp != NULL; rp = rp->ai_next) {
-        server->fd_socket = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-        if (server->fd_socket == -1) {
+        server->socket_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (server->socket_fd == -1) {
             continue;
         }
-        if (bind(server->fd_socket, rp->ai_addr, rp->ai_addrlen) == 0) {
+        if (bind(server->socket_fd, rp->ai_addr, rp->ai_addrlen) == 0) {
             /* getting ip address  and port*/
             struct sockaddr_in my_addr;
             socklen_t len = sizeof(my_addr);
-            getsockname(server->fd_socket, (struct sockaddr *) &my_addr, &len);
+            getsockname(server->socket_fd, (struct sockaddr *) &my_addr, &len);
             inet_ntop(AF_INET, &my_addr.sin_addr, server->ip_addr, 16);
             server->port_num = ntohs(my_addr.sin_port);
             freeaddrinfo(result);
-            if ((listen(server->fd_socket, SOMAXCONN)) != 0) {
+            if ((listen(server->socket_fd, SOMAXCONN)) != 0) {
                 free(server);
                 perror("listen()");
                 exit(EXIT_FAILURE);
@@ -614,7 +614,7 @@ struct Server *server_init(char *port) {
             printf("Listening on %s:%hu\n", server->ip_addr, server->port_num);
             return server;
         }
-        close(server->fd_socket);
+        close(server->socket_fd);
     }
     perror("bind()");
     exit(EXIT_FAILURE);
