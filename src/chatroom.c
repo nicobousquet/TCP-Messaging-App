@@ -27,10 +27,10 @@ struct Chatroom **chatroom_get_by_user(struct Chatroom **list_chatrooms, struct 
     return NULL;
 }
 
-struct Chatroom **chatroom_get_by_name(struct Chatroom **list_chatrooms, char *nickname_user) {
+struct Chatroom **chatroom_get_by_name(struct Chatroom **list_chatrooms, char *chatroom_name) {
     for (int j = 0; j < NUM_MAX_CHATROOMS; j++) {
         if (list_chatrooms[j] != NULL) {
-            if (strcmp(list_chatrooms[j]->name, nickname_user) == 0) {
+            if (strcmp(list_chatrooms[j]->name, chatroom_name) == 0) {
                 return &(list_chatrooms[j]);
             }
         }
@@ -38,12 +38,12 @@ struct Chatroom **chatroom_get_by_name(struct Chatroom **list_chatrooms, char *n
     return NULL;
 }
 
-struct UserNode **chatroom_remove_user(struct Chatroom **chatroom, struct UserNode *user) {
+struct UserNode **chatroom_remove_user(struct Chatroom *chatroom, struct UserNode *user) {
     for (int k = 0; k < NUM_MAX_USERS; k++) {
-        if ((*chatroom)->list_users[k] != NULL && (*chatroom)->list_users[k] == user) {
-            (*chatroom)->list_users[k] = NULL;
-            (*chatroom)->num_users--;
-            return &(*chatroom)->list_users[k];
+        if (chatroom->list_users[k] != NULL && chatroom->list_users[k] == user) {
+            chatroom->list_users[k] = NULL;
+            chatroom->num_users--;
+            return &(chatroom->list_users[k]);
         }
     }
     return NULL;

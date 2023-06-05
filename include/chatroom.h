@@ -13,8 +13,8 @@ struct Chatroom *chatroom_init(char *name_chatroom, struct UserNode *first_user)
 
 struct Chatroom **chatroom_get_by_user(struct Chatroom **list_chatrooms, struct UserNode *user);
 
-struct Chatroom **chatroom_get_by_name(struct Chatroom **list_chatrooms, char *nickname_user);
+struct Chatroom **chatroom_get_by_name(struct Chatroom **list_chatrooms, char *chatroom_name);
 
-struct UserNode **chatroom_remove_user(struct Chatroom **chatroom, struct UserNode *user);
+struct UserNode **chatroom_remove_user(struct Chatroom *chatroom, struct UserNode *user);
 
 #endif //CHATROOM_H
