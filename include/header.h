@@ -4,7 +4,7 @@
 #include "constants.h"
 
 /* different types of messages */
-enum message_type {
+enum messageType {
     DEFAULT,
     NICKNAME_NEW,
     NICKNAME_LIST,
@@ -23,17 +23,16 @@ enum message_type {
     FILE_SEND,
     FILE_ACK,
     FILENAME,
-    HELP,
-    QUIT
+    HELP
 };
 
-struct Header {
+struct header {
     unsigned long len_payload; /* length of the payload */
     char from[2 * NICK_LEN]; /* name of the sender */
-    enum message_type type; /* type of the message */
+    enum messageType type; /* type of the message */
     char infos[INFOS_LEN]; /* additional infos on the message */
 };
 
-void header_set(struct Header *header, unsigned long len_payload, char *from, enum message_type type, char *infos);
+void header_set(struct header *header, unsigned long len_payload, char *from, enum messageType type, char *infos);
 
 #endif //HEADER_H

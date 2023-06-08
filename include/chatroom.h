@@ -3,18 +3,18 @@
 
 #include "user_node.h"
 
-struct Chatroom {
+struct chatroom {
     char name[NICK_LEN]; /* name of the chatroom */
-    struct UserNode *list_users[NUM_MAX_USERS]; /* users who are in the chatroom */
+    struct userNode *list_users[NUM_MAX_USERS]; /* users who are in the chatroom */
     int num_users; /* number of users in the chatroom */
 };
 
-struct Chatroom *chatroom_init(char *name_chatroom, struct UserNode *first_user);
+struct chatroom *chatroom_init(char *name_chatroom, struct userNode *first_user);
 
-struct Chatroom **chatroom_get_by_user(struct Chatroom **list_chatrooms, struct UserNode *user);
+struct chatroom **chatroom_get_by_user(struct chatroom **list_chatrooms, struct userNode *user);
 
-struct Chatroom **chatroom_get_by_name(struct Chatroom **list_chatrooms, char *chatroom_name);
+struct chatroom **chatroom_get_by_name(struct chatroom **list_chatrooms, char *chatroom_name);
 
-struct UserNode **chatroom_remove_user(struct Chatroom *chatroom, struct UserNode *user);
+struct userNode **chatroom_remove_user(struct chatroom *chatroom, struct userNode *user);
 
 #endif //CHATROOM_H

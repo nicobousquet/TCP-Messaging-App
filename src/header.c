@@ -1,7 +1,7 @@
 #include "../include/header.h"
 #include <string.h>
 
-void header_set(struct Header *header, unsigned long len_payload, char *from, enum message_type type, char *infos) {
+void header_set(struct header *header, unsigned long len_payload, char *from, enum messageType type, char *infos) {
     if (from != NULL) {
         strcpy(header->from, from);
     }

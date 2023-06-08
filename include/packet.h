@@ -3,13 +3,13 @@
 
 #include "../include/header.h"
 
-struct Packet {
-    struct Header header;
+struct packet {
+    struct header header;
     char payload[MSG_LEN];
 };
 
-void packet_set(struct Packet *packet, char *from, enum message_type type, char *infos, char *payload);
+void packet_set(struct packet *packet, char *from, enum messageType type, char *infos, char *payload);
 
-void packet_send(struct Packet *packet, int fd_dest);
+void packet_send(struct packet *packet, int fd_dest);
 
 #endif //PACKET_H

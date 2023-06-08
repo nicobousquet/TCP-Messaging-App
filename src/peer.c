@@ -10,9 +10,9 @@
 #include <errno.h>
 #include <fcntl.h>
 
-struct Peer *peer_init_peer_dest(char *listening_port, char *nickname_user) {
-    struct Peer *peer_dest = malloc(sizeof(struct Peer));
-    memset(peer_dest, 0, sizeof(struct Peer));
+struct peer *peer_init_peer_dest(char *listening_port, char *nickname_user) {
+    struct peer *peer_dest = malloc(sizeof(struct peer));
+    memset(peer_dest, 0, sizeof(struct peer));
     struct addrinfo hints, *result, *rp;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_socktype = SOCK_STREAM;
@@ -48,12 +48,12 @@ struct Peer *peer_init_peer_dest(char *listening_port, char *nickname_user) {
     exit(EXIT_FAILURE);
 }
 
-int peer_receive_file(struct Peer *peer_dest, char *file_to_receive) {
+int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
     /* receiving file */
     printf("Receiving the file...\n");
 
     /* receiving a first structure to check if file exists on client's computer and if yes, with the size of the file */
-    if (recv(peer_dest->socket_fd, &peer_dest->packet.header, sizeof(struct Header), MSG_WAITALL) <= 0) {
+    if (recv(peer_dest->socket_fd, &peer_dest->packet.header, sizeof(struct header), MSG_WAITALL) <= 0) {
         perror("recv FILE_SEND");
         exit(EXIT_FAILURE);
     }
@@ -87,7 +87,7 @@ int peer_receive_file(struct Peer *peer_dest, char *file_to_receive) {
     long ret = 0, offset = 0;
     /* while we did not receive all the data of the file */
     while (offset != size) {
-        recv(peer_dest->socket_fd, &peer_dest->packet.header, sizeof(struct Header), MSG_WAITALL);
+        recv(peer_dest->socket_fd, &peer_dest->packet.header, sizeof(struct header), MSG_WAITALL);
         /* receiving file by frame of max 1024 bytes */
         recv(peer_dest->socket_fd, peer_dest->buffer, peer_dest->packet.header.len_payload, MSG_WAITALL);
         /* writing received data in a new file */
@@ -115,9 +115,9 @@ int peer_receive_file(struct Peer *peer_dest, char *file_to_receive) {
     return 1;
 }
 
-struct Peer *peer_init_peer_src(char *hostname, char *port) {
-    struct Peer *peer_src = malloc(sizeof(struct Peer));
-    memset(peer_src, 0, sizeof(struct Peer));
+struct peer *peer_init_peer_src(char *hostname, char *port) {
+    struct peer *peer_src = malloc(sizeof(struct peer));
+    memset(peer_src, 0, sizeof(struct peer));
     struct addrinfo hints, *result, *rp;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_socktype = SOCK_STREAM;
@@ -150,7 +150,7 @@ struct Peer *peer_init_peer_src(char *hostname, char *port) {
     return peer_src;
 }
 
-int peer_send_file(struct Peer *peer_src, char *file_to_send) {
+int peer_send_file(struct peer *peer_src, char *file_to_send) {
     /* sending file */
     printf("Sending the file...\n");
     struct stat sb;

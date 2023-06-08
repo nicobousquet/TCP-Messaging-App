@@ -4,39 +4,46 @@
 #include "packet.h"
 #include "chatroom.h"
 
-static char *msg_type_str[] = {
-        "DEFAULT",
-        "NICKNAME_NEW",
-        "NICKNAME_LIST",
-        "NICKNAME_INFOS",
-        "ECHO_SEND",
-        "UNICAST_SEND",
-        "BROADCAST_SEND",
-        "MULTICAST_CREATE",
-        "MULTICAST_LIST",
-        "MULTICAST_JOIN",
-        "MULTICAST_SEND",
-        "MULTICAST_QUIT",
-        "FILE_REQUEST",
-        "FILE_ACCEPT",
-        "FILE_REJECT",
-        "FILE_SEND",
-        "FILE_ACK",
-        "FILENAME",
-        "HELP",
-        "QUIT"
-};
-
-struct Server {
+struct server {
     int socket_fd;
     char ip_addr[16];
     u_short port_num;
-    struct Packet packet;
-    struct Chatroom *list_chatrooms[NUM_MAX_CHATROOMS];
+    struct packet packet;
+    struct chatroom *list_chatrooms[NUM_MAX_CHATROOMS];
     int num_chatrooms; /* number of chatrooms not empty */
-    struct UserNode *linked_list_users;
+    struct userNode *linked_list_users;
     int num_users;
-    struct UserNode *current_user;
+    struct userNode *current_user;
 };
+
+struct server *server_init(char *port);
+
+void server_disconnect_user(struct server *server, struct userNode *user_to_disconnect);
+
+void server_handle_file_reject_req(struct server *server);
+
+void server_handle_file_accept_req(struct server *server);
+
+void server_handle_file_req(struct server *server);
+
+void server_handle_multicast_send_req(struct server *server);
+
+void server_handle_multicast_quit_req(struct server *server);
+
+void server_handle_multicast_join_req(struct server *server);
+
+void server_handle_multicast_list_req(struct server *server);
+
+void server_handle_multicast_create_req(struct server *server);
+
+void server_handle_unicast_send_req(struct server *server);
+
+void server_handle_broadcast_send_req(struct server *server);
+
+void server_handle_nickname_infos_req(struct server *server);
+
+void server_handle_nickname_list_req(struct server *server);
+
+void server_handle_nickname_new_req(struct server *server);
 
 #endif //SERVER_H

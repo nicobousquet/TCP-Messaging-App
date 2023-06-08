@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 /* copying information in header */
-void packet_set(struct Packet *packet, char *from, enum message_type type, char *infos, char *payload) {
+void packet_set(struct packet *packet, char *from, enum messageType type, char *infos, char *payload) {
     header_set(&packet->header, strlen(payload), from, type, infos);
 
     if (payload != NULL) {
@@ -14,8 +14,8 @@ void packet_set(struct Packet *packet, char *from, enum message_type type, char 
 }
 
 /* send structure and payload */
-void packet_send(struct Packet *packet, int fd_dest) {
-    if (send(fd_dest, &packet->header, sizeof(struct Header), 0) <= 0) {
+void packet_send(struct packet *packet, int fd_dest) {
+    if (send(fd_dest, &packet->header, sizeof(struct header), 0) <= 0) {
         perror("packet_send");
         exit(EXIT_FAILURE);
     }
