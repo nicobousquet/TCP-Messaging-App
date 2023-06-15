@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct userNode *user_node_init(int socket_fd, char *ip_addr, u_short port_num, char *nickname, char *date) {
-    struct userNode *user = malloc(sizeof(struct userNode));
+struct user_node *user_node_init(int socket_fd, char *ip_addr, u_short port_num, char *nickname, char *date) {
+    struct user_node *user = malloc(sizeof(struct user_node));
     user->socket_fd = socket_fd;
     strcpy(user->ip_addr, ip_addr);
     user->port_num = port_num;
@@ -16,17 +16,17 @@ struct userNode *user_node_init(int socket_fd, char *ip_addr, u_short port_num, 
 }
 
 /* adding user in the list */
-void user_node_add(struct userNode **linked_list_users, struct userNode *new_user_node) {
+void user_node_add(struct user_node **linked_list_users, struct user_node *new_user_node) {
     new_user_node->next = *linked_list_users;
     *linked_list_users = new_user_node;
 }
 
 /* freeing user node in the list */
-void user_node_remove(struct userNode **linked_list_users, struct userNode *user_to_remove) {
-    struct userNode *newNode = malloc(sizeof(struct userNode));
+void user_node_remove(struct user_node **linked_list_users, struct user_node *user_to_remove) {
+    struct user_node *newNode = malloc(sizeof(struct user_node));
     newNode->next = *linked_list_users;
     *linked_list_users = newNode;
-    struct userNode *current;
+    struct user_node *current;
     /* looking for the user we want to free */
     for (current = *linked_list_users; current->next != NULL; current = current->next) {
         if (current->next == user_to_remove) {
@@ -34,7 +34,7 @@ void user_node_remove(struct userNode **linked_list_users, struct userNode *user
         }
     }
     /* freeing user */
-    struct userNode *tmp = current->next;
+    struct user_node *tmp = current->next;
     current->next = (current->next)->next;
     free(tmp);
     /* freeing fake first node of the list */

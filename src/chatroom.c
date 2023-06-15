@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-struct chatroom *chatroom_init(char *name_chatroom, struct userNode *first_user) {
+struct chatroom *chatroom_init(char *name_chatroom, struct user_node *first_user) {
     struct chatroom *new_chatroom = malloc(sizeof(struct chatroom));
     memset(new_chatroom, 0, sizeof(struct chatroom));
     strcpy(new_chatroom->name, name_chatroom);
@@ -12,7 +12,7 @@ struct chatroom *chatroom_init(char *name_chatroom, struct userNode *first_user)
     return new_chatroom;
 }
 
-struct chatroom **chatroom_get_by_user(struct chatroom **list_chatrooms, struct userNode *user) {
+struct chatroom **chatroom_get_by_user(struct chatroom **list_chatrooms, struct user_node *user) {
     for (int j = 0; j < NUM_MAX_CHATROOMS; j++) {
         if (list_chatrooms[j] != NULL) {
             for (int k = 0; k < NUM_MAX_USERS; k++) {
@@ -38,7 +38,7 @@ struct chatroom **chatroom_get_by_name(struct chatroom **list_chatrooms, char *c
     return NULL;
 }
 
-struct userNode **chatroom_remove_user(struct chatroom *chatroom, struct userNode *user) {
+struct user_node **chatroom_remove_user(struct chatroom *chatroom, struct user_node *user) {
     for (int k = 0; k < NUM_MAX_USERS; k++) {
         if (chatroom->list_users[k] != NULL && chatroom->list_users[k] == user) {
             chatroom->list_users[k] = NULL;

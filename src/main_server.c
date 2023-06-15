@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
                 time_t ltime;
                 time(&ltime);
                 if (server->num_users < NUM_MAX_USERS) {
-                    struct userNode *user = user_node_init(socket_fd, inet_ntoa(sockaddrInPtr->sin_addr), ntohs(sockaddrInPtr->sin_port), "", asctime(localtime(&ltime)));
+                    struct user_node *user = user_node_init(socket_fd, inet_ntoa(sockaddrInPtr->sin_addr), ntohs(sockaddrInPtr->sin_port), "", asctime(localtime(&ltime)));
                     printf("Client (%s:%hu) connected on socket %i.\n", user->ip_addr, user->port_num, user->socket_fd);
                     user_node_add(&server->linked_list_users, user);
                     server->num_users++;
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
                 pollfds[i].revents = 0;
             } else if (pollfds[i].fd != server->socket_fd && pollfds[i].revents & POLLHUP) {
                 /* getting the user which is doing the request */
-                struct userNode *current = NULL;
+                struct user_node *current = NULL;
                 for (current = server->linked_list_users; current != NULL; current = current->next) {
                     if (current->socket_fd == pollfds[i].fd) {
                         break;
@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
             } else if (pollfds[i].fd != server->socket_fd && pollfds[i].revents & POLLIN) {
                 /* If a socket different from the listening socket is active */
                 /* getting the user which is doing the request */
-                struct userNode *current = NULL;
+                struct user_node *current = NULL;
                 for (current = server->linked_list_users; current != NULL; current = current->next) {
                     if (current->socket_fd == pollfds[i].fd) {
                         break;

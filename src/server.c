@@ -45,7 +45,7 @@ struct server *server_init(char *port) {
     exit(EXIT_FAILURE);
 }
 
-void server_disconnect_user(struct server *server, struct userNode *user_to_disconnect) {
+void server_disconnect_user(struct server *server, struct user_node *user_to_disconnect) {
     printf("%s (%s:%hu) on socket %d has disconnected from server\n", user_to_disconnect->nickname, user_to_disconnect->ip_addr, user_to_disconnect->port_num, user_to_disconnect->socket_fd);
     /* if user is in a chatroom
        we remove the user from the chatroom */
@@ -74,8 +74,8 @@ void server_disconnect_user(struct server *server, struct userNode *user_to_disc
 }
 
 /* getting user by its name */
-struct userNode *server_get_user(struct server *server, char *nickname_user) {
-    for (struct userNode *current = server->linked_list_users; current != NULL; current = current->next) {
+struct user_node *server_get_user(struct server *server, char *nickname_user) {
+    for (struct user_node *current = server->linked_list_users; current != NULL; current = current->next) {
         if (strcmp(current->nickname, nickname_user) == 0) {
             return current;
         }
@@ -85,7 +85,7 @@ struct userNode *server_get_user(struct server *server, char *nickname_user) {
 
 void server_handle_nickname_new_req(struct server *server) {
     strcpy(server->packet.header.from, "SERVER");
-    for (struct userNode *user = server->linked_list_users; user != NULL; user = user->next) {
+    for (struct user_node *user = server->linked_list_users; user != NULL; user = user->next) {
         /* looking if nickname used by another user */
         if (strcmp(user->nickname, server->packet.header.infos) == 0) {
             strcpy(server->packet.payload, "Nickname used by another user");
@@ -111,7 +111,7 @@ void server_handle_nickname_new_req(struct server *server) {
 void server_handle_nickname_list_req(struct server *server) {
     strcpy(server->packet.header.from, "SERVER");
     strcpy(server->packet.payload, "Online users are:\n");
-    for (struct userNode *user = server->linked_list_users; user != NULL; user = user->next) {
+    for (struct user_node *user = server->linked_list_users; user != NULL; user = user->next) {
         sprintf(server->packet.payload + strlen(server->packet.payload), "- %s\n", user->nickname);
     }
     server->packet.payload[strlen(server->packet.payload) - 1] = '\0';
@@ -122,7 +122,7 @@ void server_handle_nickname_list_req(struct server *server) {
 void server_handle_nickname_infos_req(struct server *server) {
     strcpy(server->packet.header.from, "SERVER");
     /* getting user we want information of */
-    struct userNode *nickname_dest = server_get_user(server, server->packet.header.infos);
+    struct user_node *nickname_dest = server_get_user(server, server->packet.header.infos);
     /* if user does not exist */
     if (nickname_dest == NULL) {
         strcpy(server->packet.payload, "Unknown user");
@@ -135,7 +135,7 @@ void server_handle_nickname_infos_req(struct server *server) {
 }
 
 void server_handle_broadcast_send_req(struct server *server) {
-    for (struct userNode *nickname_dest = server->linked_list_users; nickname_dest != NULL; nickname_dest = nickname_dest->next) {
+    for (struct user_node *nickname_dest = server->linked_list_users; nickname_dest != NULL; nickname_dest = nickname_dest->next) {
         if (strcmp(nickname_dest->nickname, server->current_user->nickname) == 0) {
             strcpy(server->packet.header.from, "me@all");
         } else {
@@ -146,7 +146,7 @@ void server_handle_broadcast_send_req(struct server *server) {
 }
 
 void server_handle_unicast_send_req(struct server *server) {
-    struct userNode *nickname_dest = server_get_user(server, server->packet.header.infos);
+    struct user_node *nickname_dest = server_get_user(server, server->packet.header.infos);
     /* if dest user exists */
     if (nickname_dest != NULL) {
         packet_send(&server->packet, nickname_dest->socket_fd);
@@ -328,7 +328,7 @@ void server_handle_multicast_quit_req(struct server *server) {
     if (server->num_chatrooms != 0) {
         struct chatroom **chatroom = chatroom_get_by_name(server->list_chatrooms, server->packet.header.infos);
         if (chatroom != NULL) {
-            struct userNode **user = chatroom_remove_user(*chatroom, server->current_user);
+            struct user_node **user = chatroom_remove_user(*chatroom, server->current_user);
             /* if chatroom exists */
             if (user != NULL) {
                 server->current_user->is_in_chatroom = 0;
@@ -398,7 +398,7 @@ void server_handle_multicast_send_req(struct server *server) {
 
 void server_handle_file_req(struct server *server) {
     /* getting the user he wants to send file to */
-    struct userNode *nickname_dest = server_get_user(server, server->packet.header.infos);
+    struct user_node *nickname_dest = server_get_user(server, server->packet.header.infos);
     /* if user does not exist */
     if (nickname_dest == NULL) {
         server->packet.header.type = DEFAULT;
@@ -421,12 +421,12 @@ void server_handle_file_req(struct server *server) {
 }
 
 void server_handle_file_accept_req(struct server *server) {
-    struct userNode *nickname_dest = server_get_user(server, server->packet.header.infos);
+    struct user_node *nickname_dest = server_get_user(server, server->packet.header.infos);
     packet_send(&server->packet, nickname_dest->socket_fd);
 }
 
 void server_handle_file_reject_req(struct server *server) {
-    struct userNode *nickname_dest = server_get_user(server, server->packet.header.infos);
+    struct user_node *nickname_dest = server_get_user(server, server->packet.header.infos);
     sprintf(server->packet.payload, "%s cancelled file transfer", server->current_user->nickname);
     server->packet.header.len_payload = strlen(server->packet.payload);
     strcpy(server->packet.header.from, "SERVER");
