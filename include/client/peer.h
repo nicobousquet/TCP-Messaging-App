@@ -1,7 +1,7 @@
 #ifndef TCP_MESSAGING_APP_PEER_H
 #define TCP_MESSAGING_APP_PEER_H
 
-#include "packet.h"
+#include "../packet/packet.h"
 #include <sys/types.h>
 
 struct peer {

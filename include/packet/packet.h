@@ -1,7 +1,7 @@
 #ifndef PACKET_H
 #define PACKET_H
 
-#include "../include/header.h"
+#include "header.h"
 
 struct packet {
     struct header header;

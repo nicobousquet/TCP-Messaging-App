@@ -3,7 +3,7 @@
 
 #define NUM_FDS 2
 
-#include "packet.h"
+#include "../packet/packet.h"
 #include <sys/types.h>
 #include <poll.h>
 

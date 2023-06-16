@@ -1,5 +1,5 @@
-#include "../include/client.h"
-#include "../include/peer.h"
+#include "../../include/client/client.h"
+#include "../../include/client/peer.h"
 #include <string.h>
 #include <sys/socket.h>
 #include <netdb.h>

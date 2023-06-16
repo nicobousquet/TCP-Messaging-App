@@ -1,4 +1,4 @@
-#include "../include/peer.h"
+#include "../../include/client/peer.h"
 #include <string.h>
 #include <stdlib.h>
 #include <sys/socket.h>

@@ -1,4 +1,4 @@
-#include "../include/header.h"
+#include "../../include/packet/header.h"
 #include <string.h>
 
 void header_set(struct header *header, unsigned long len_payload, char *from, enum messageType type, char *infos) {

@@ -1,4 +1,4 @@
-#include "../include/server.h"
+#include "../../include/server/server.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <poll.h>

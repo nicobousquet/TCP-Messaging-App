@@ -1,7 +1,7 @@
 #ifndef USER_NODE_H
 #define USER_NODE_H
 
-#include "../include/constants.h"
+#include "../constants.h"
 #include <sys/types.h>
 
 /* structure of a user */

@@ -1,7 +1,7 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include "packet.h"
+#include "../packet/packet.h"
 #include "chatroom.h"
 
 struct server {

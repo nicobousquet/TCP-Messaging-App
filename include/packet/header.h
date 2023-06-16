@@ -1,7 +1,7 @@
 #ifndef HEADER_H
 #define HEADER_H
 
-#include "constants.h"
+#include "../constants.h"
 
 /* different types of messages */
 enum messageType {

@@ -1,6 +1,6 @@
 all:
-	cc -Wall -Wextra -g -std=gnu99 src/header.c src/packet.c src/peer.c src/client.c src/main_client.c -o bin/client
-	cc -Wall -Wextra -g -std=gnu99 src/header.c src/packet.c src/user_node.c src/chatroom.c src/server.c src/main_server.c -o bin/server
+	cc -Wall -Wextra -g -std=gnu99 src/packet/header.c src/packet/packet.c src/client/peer.c src/client/client.c src/client/main.c -o bin/client
+	cc -Wall -Wextra -g -std=gnu99 src/packet/header.c src/packet/packet.c src/server/user_node.c src/server/chatroom.c src/server/server.c src/server/main.c -o bin/server
 
 clean:
 	rm -rf bin/*
