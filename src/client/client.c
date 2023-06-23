@@ -9,6 +9,53 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+/* Connecting to server socket */
+struct client *client_init(char *hostname, char *port) {
+    struct client *client = malloc(sizeof(struct client));
+    memset(client, 0, sizeof(struct client));
+    struct addrinfo hints, *result, *rp;
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_socktype = SOCK_STREAM;
+    if (getaddrinfo(hostname, port, &hints, &result) != 0) {
+        perror("getaddrinfo()");
+        exit(EXIT_FAILURE);
+    }
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+        client->socket_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (client->socket_fd == -1) {
+            continue;
+        }
+        if (connect(client->socket_fd, rp->ai_addr, rp->ai_addrlen) != -1) {
+            /* getting ip address and port of connection */
+            struct sockaddr_in *sockaddr_in_ptr = (struct sockaddr_in *) rp->ai_addr;
+            socklen_t len = sizeof(struct sockaddr_in);
+            getsockname(client->socket_fd, (struct sockaddr *) sockaddr_in_ptr, &len);
+            client->port_num = ntohs(sockaddr_in_ptr->sin_port);
+            strcpy(client->ip_addr, inet_ntoa(sockaddr_in_ptr->sin_addr));
+            break;
+        }
+        close(client->socket_fd);
+    }
+    if (rp == NULL) {
+        perror("connect()");
+        exit(EXIT_FAILURE);
+    }
+    freeaddrinfo(result);
+    printf("You (%s:%hu) are now connected to the server (%s:%s)\n", client->ip_addr, client->port_num, hostname, port);
+    return client;
+}
+
+/* disconnecting client from server */
+void client_disconnect_from_server(struct pollfd *pollfds) {
+    for (int j = 0; j < NUM_FDS; j++) {
+        close(pollfds[j].fd);
+        pollfds[j].fd = -1;
+        pollfds[j].events = 0;
+        pollfds[j].revents = 0;
+    }
+    printf("You are disconnected\n");
+}
+
 void client_send_nickname_new_req(struct client *client, char *new_nickname) {
     if (new_nickname == NULL) {
         printf("Please, choose a nickname !\n");
@@ -255,51 +302,4 @@ void client_handle_file_accept_res(struct client *client) {
     close(peer_src->socket_fd);
     free(peer_src);
     printf("Connection closed with %s\n", client->packet.header.from);
-}
-
-/* disconnecting client from server */
-void client_disconnect_from_server(struct pollfd *pollfds) {
-    for (int j = 0; j < NUM_FDS; j++) {
-        close(pollfds[j].fd);
-        pollfds[j].fd = -1;
-        pollfds[j].events = 0;
-        pollfds[j].revents = 0;
-    }
-    printf("You are disconnected\n");
-}
-
-/* Connecting to server socket */
-struct client *client_init(char *hostname, char *port) {
-    struct client *client = malloc(sizeof(struct client));
-    memset(client, 0, sizeof(struct client));
-    struct addrinfo hints, *result, *rp;
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_socktype = SOCK_STREAM;
-    if (getaddrinfo(hostname, port, &hints, &result) != 0) {
-        perror("getaddrinfo()");
-        exit(EXIT_FAILURE);
-    }
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
-        client->socket_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-        if (client->socket_fd == -1) {
-            continue;
-        }
-        if (connect(client->socket_fd, rp->ai_addr, rp->ai_addrlen) != -1) {
-            /* getting ip address and port of connection */
-            struct sockaddr_in *sockaddr_in_ptr = (struct sockaddr_in *) rp->ai_addr;
-            socklen_t len = sizeof(struct sockaddr_in);
-            getsockname(client->socket_fd, (struct sockaddr *) sockaddr_in_ptr, &len);
-            client->port_num = ntohs(sockaddr_in_ptr->sin_port);
-            strcpy(client->ip_addr, inet_ntoa(sockaddr_in_ptr->sin_addr));
-            break;
-        }
-        close(client->socket_fd);
-    }
-    if (rp == NULL) {
-        perror("connect()");
-        exit(EXIT_FAILURE);
-    }
-    freeaddrinfo(result);
-    printf("You (%s:%hu) are now connected to the server (%s:%s)\n", client->ip_addr, client->port_num, hostname, port);
-    return client;
 }
