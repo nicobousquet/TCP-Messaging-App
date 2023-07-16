@@ -7,14 +7,14 @@
 #include <unistd.h>
 #include <netdb.h>
 
-struct server *server_init(char *listening_addr, char *port) {
+struct server *server_init(char *port) {
     struct server *server = malloc(sizeof(struct server));
     memset(server, 0, sizeof(struct server));
     struct addrinfo hints, *result, *rp;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
-    if (getaddrinfo(listening_addr, port, &hints, &result) != 0) {
+    if (getaddrinfo(NULL, port, &hints, &result) != 0) {
         perror("getaddrinfo()");
         exit(EXIT_FAILURE);
     }

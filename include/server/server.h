@@ -16,7 +16,7 @@ struct server {
     struct user_node *current_user;
 };
 
-struct server *server_init(char *listening_addr, char *port);
+struct server *server_init(char *port);
 
 void server_disconnect_user(struct server *server, struct user_node *user_to_disconnect);
 
