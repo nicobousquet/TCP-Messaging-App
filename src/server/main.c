@@ -32,16 +32,16 @@ char *msg_type_str[] = {
 };
 
 void usage() {
-    printf("Usage: ./server port_number\n");
+    printf("Usage: ./server listening_addr port_number\n");
     exit(EXIT_FAILURE);
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
+    if (argc != 3) {
         usage();
     }
 
-    struct server *server = server_init(argv[1]);
+    struct server *server = server_init(argv[1], argv[2]);
     /* running server */
     /* Declare array of struct pollfd */
     struct pollfd pollfds[NUM_MAX_USERS + 1];

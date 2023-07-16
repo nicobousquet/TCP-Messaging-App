@@ -13,7 +13,7 @@ struct peer {
     struct packet packet;
 };
 
-struct peer *peer_init_peer_dest(char *listening_port, char *nickname_user);
+struct peer *peer_init_peer_dest(char *listening_addr, char *listening_port, char *nickname_user);
 
 int peer_receive_file(struct peer *peer_dest, char *file_to_receive);
 

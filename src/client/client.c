@@ -205,7 +205,7 @@ static void file_accept_req(struct client *client, char *file_sender) {
     /* letting the computer choosing a listening port */
     char listening_port[INFOS_LEN] = "0";
     /* creating a listening socket */
-    struct peer *peer_dest = peer_init_peer_dest(listening_port, client->nickname);
+    struct peer *peer_dest = peer_init_peer_dest(client->ip_addr, listening_port, client->nickname);
     sprintf(client->packet.payload, "%s:%hu", peer_dest->ip_addr, peer_dest->port_num);
     /* sending ip address and port for the client to connect */
     packet_set(&client->packet, client->nickname, FILE_ACCEPT, file_sender, client->packet.payload);

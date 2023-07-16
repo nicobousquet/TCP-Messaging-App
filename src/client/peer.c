@@ -10,14 +10,14 @@
 #include <errno.h>
 #include <fcntl.h>
 
-struct peer *peer_init_peer_dest(char *listening_port, char *nickname_user) {
+struct peer *peer_init_peer_dest(char *listening_addr, char *listening_port, char *nickname_user) {
     struct peer *peer_dest = malloc(sizeof(struct peer));
     memset(peer_dest, 0, sizeof(struct peer));
     struct addrinfo hints, *result, *rp;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
-    if (getaddrinfo(NULL, listening_port, &hints, &result) != 0) {
+    if (getaddrinfo(listening_addr, listening_port, &hints, &result) != 0) {
         perror("getaddrinfo()");
         exit(EXIT_FAILURE);
     }
