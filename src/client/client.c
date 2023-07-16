@@ -210,18 +210,18 @@ static void file_accept_req(struct client *client, char *file_sender) {
     /* sending ip address and port for the client to connect */
     packet_set(&client->packet, client->nickname, FILE_ACCEPT, file_sender, client->packet.payload);
     packet_send(&client->packet, client->socket_fd);
-    struct sockaddr peer_dest_addr;
-    memset(&peer_dest_addr, 0, sizeof(peer_dest_addr));
-    socklen_t len = sizeof(peer_dest_addr);
+    struct sockaddr peer_src_addr;
+    memset(&peer_src_addr, 0, sizeof(peer_src_addr));
+    socklen_t len = sizeof(peer_src_addr);
     /* accepting connection from client */
-    if ((peer_dest->socket_fd = accept(peer_dest->socket_fd, &peer_dest_addr, &len)) == -1) {
+    if ((peer_dest->socket_fd = accept(peer_dest->socket_fd, &peer_src_addr, &len)) == -1) {
         perror("Accept");
     }
-    getpeername(peer_dest->socket_fd, (struct sockaddr *) &peer_dest_addr, &len);
+    getpeername(peer_dest->socket_fd, (struct sockaddr *) &peer_src_addr, &len);
     char ip_addr_client[INFOS_LEN];
-    strcpy(ip_addr_client, inet_ntoa(((struct sockaddr_in *) &peer_dest_addr)->sin_addr));
-    u_short port_num_client = ntohs(((struct sockaddr_in *) &peer_dest_addr)->sin_port);
-    printf("%s (%s:%i) is now connected to you\n", file_sender, ip_addr_client, port_num_client);
+    strcpy(ip_addr_client, inet_ntoa(((struct sockaddr_in *) &peer_src_addr)->sin_addr));
+    u_short port_num_client = ntohs(((struct sockaddr_in *) &peer_src_addr)->sin_port);
+    printf("%s (%s:%i) is now connected to you (%s:%hu)\n", file_sender, ip_addr_client, port_num_client, peer_dest->ip_addr, peer_dest->port_num);
 
     if (!peer_receive_file(peer_dest, client->file_to_receive)) {
         printf("Error: file not sent\n");

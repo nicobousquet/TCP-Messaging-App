@@ -146,7 +146,7 @@ struct peer *peer_init_peer_src(char *hostname, char *port) {
         exit(EXIT_FAILURE);
     }
     freeaddrinfo(result);
-    printf("You (%s:%hu) are now connected to the server (%s:%s)\n", peer_src->ip_addr, peer_src->port_num, hostname, port);
+    printf("You (%s:%hu) are now connected to %s:%s\n", peer_src->ip_addr, peer_src->port_num, hostname, port);
     return peer_src;
 }
 
