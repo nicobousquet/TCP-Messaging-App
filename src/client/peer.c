@@ -137,6 +137,7 @@ struct peer *peer_init_peer_src(char *hostname, char *port) {
             getsockname(peer_src->socket_fd, (struct sockaddr *) sockaddr_in_ptr, &len);
             peer_src->port_num = ntohs(sockaddr_in_ptr->sin_port);
             strcpy(peer_src->ip_addr, inet_ntoa(sockaddr_in_ptr->sin_addr));
+            printf("You (%s:%hu) are now connected to %s:%s\n", peer_src->ip_addr, peer_src->port_num, hostname, port);
             break;
         }
         close(peer_src->socket_fd);
@@ -145,8 +146,8 @@ struct peer *peer_init_peer_src(char *hostname, char *port) {
         perror("connect()");
         exit(EXIT_FAILURE);
     }
+
     freeaddrinfo(result);
-    printf("You (%s:%hu) are now connected to %s:%s\n", peer_src->ip_addr, peer_src->port_num, hostname, port);
     return peer_src;
 }
 
