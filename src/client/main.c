@@ -31,26 +31,33 @@ int main(int argc, char *argv[]) {
     /* client loop */
     while (1) {
         fflush(stdout);
+
         if (-1 == poll(pollfds, NUM_FDS, -1)) {
             perror("Poll");
         }
+
         for (int i = 0; i < NUM_FDS; i++) {
             memset(&client->packet.header, 0, sizeof(struct header));
             memset(client->buffer, 0, MSG_LEN);
             memset(client->packet.payload, 0, MSG_LEN);
+
             /* if data comes from keyboard */
             if (pollfds[i].fd == STDIN_FILENO && pollfds[i].revents & POLLIN) {
                 strcpy(client->packet.header.from, client->nickname);
                 /* putting data into buffer */
                 int n = 0;
+
                 while ((client->buffer[n++] = (char) getchar()) != '\n') {}
+
                 /* removing \n at the end of the buffer */
                 client->buffer[strlen(client->buffer) - 1] = '\0';
                 /* move to the beginning of previous line */
                 printf("\033[1A\33[2K\r");
                 fflush(stdout);
+
                 /* getting command entered by user */
                 char *first_word = strtok(client->buffer, " ");
+
                 if (first_word != NULL) {
                     if (strcmp(first_word, "/nick") == 0) {
                         client_send_nickname_new_req(client, strtok(NULL, " "));
@@ -74,6 +81,7 @@ int main(int argc, char *argv[]) {
                         client_send_multicast_join_req(client, strtok(NULL, ""));
                     } else if (strcmp(first_word, "/quit") == 0) {
                         char *name_channel = strtok(NULL, "");
+
                         if (name_channel != NULL) {
                             client_send_multicast_quit_req(client, name_channel);
                         } else {
@@ -92,14 +100,16 @@ int main(int argc, char *argv[]) {
                 pollfds[i].revents = 0;
             } /* if data comes from server */
             else if (pollfds[i].fd != STDIN_FILENO && pollfds[i].revents & POLLIN) {
-                /*Receiving structure*/
+
+                /* Receiving structure */
                 if (recv(client->socket_fd, &client->packet.header, sizeof(struct header), MSG_WAITALL) <= 0) {
                     printf("Server has crashed\n");
                     client_disconnect_from_server(pollfds);
                     free(client);
                     exit(EXIT_FAILURE);
                 }
-                /* Receiving message*/
+
+                /* Receiving message */
                 if (client->packet.header.len_payload != 0 && recv(client->socket_fd, client->buffer, client->packet.header.len_payload, MSG_WAITALL) <= 0) {
                     perror("recv");
                 }
@@ -111,14 +121,17 @@ int main(int argc, char *argv[]) {
                         printf("[%s]: %s\n", client->packet.header.from, client->buffer);
                         pollfds[i].revents = 0;
                         break;
-                        /* if receiving a file request */
+
+                    /* if receiving a file request */
                     case FILE_REQUEST:
                         client_handle_file_request_res(client);
                         break;
-                        /* if receiving a file accept */
+
+                    /* if receiving a file accept */
                     case FILE_ACCEPT:
                         client_handle_file_accept_res(client);
                         break;
+
                     default:
                         printf("[%s]: %s\n", client->packet.header.from, client->buffer);
                         pollfds[i].revents = 0;

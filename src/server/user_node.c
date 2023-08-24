@@ -27,16 +27,19 @@ void user_node_remove(struct user_node **linked_list_users, struct user_node *us
     newNode->next = *linked_list_users;
     *linked_list_users = newNode;
     struct user_node *current;
+
     /* looking for the user we want to free */
     for (current = *linked_list_users; current->next != NULL; current = current->next) {
         if (current->next == user_to_remove) {
             break;
         }
     }
+
     /* freeing user */
     struct user_node *tmp = current->next;
     current->next = (current->next)->next;
     free(tmp);
+
     /* freeing fake first node of the list */
     tmp = *linked_list_users;
     *linked_list_users = (*linked_list_users)->next;

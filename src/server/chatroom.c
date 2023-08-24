@@ -9,6 +9,7 @@ struct chatroom *chatroom_init(char *name_chatroom, struct user_node *first_user
     new_chatroom->list_users[0] = first_user;
     first_user->is_in_chatroom = 1;
     new_chatroom->num_users = 1;
+
     return new_chatroom;
 }
 
@@ -24,6 +25,7 @@ struct chatroom **chatroom_get_by_user(struct chatroom **list_chatrooms, struct 
             }
         }
     }
+
     return NULL;
 }
 
@@ -35,6 +37,7 @@ struct chatroom **chatroom_get_by_name(struct chatroom **list_chatrooms, char *c
             }
         }
     }
+
     return NULL;
 }
 
@@ -43,8 +46,10 @@ struct user_node **chatroom_remove_user(struct chatroom *chatroom, struct user_n
         if (chatroom->list_users[k] != NULL && chatroom->list_users[k] == user) {
             chatroom->list_users[k] = NULL;
             chatroom->num_users--;
+
             return &(chatroom->list_users[k]);
         }
     }
+
     return NULL;
 }
