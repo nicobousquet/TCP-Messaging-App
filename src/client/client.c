@@ -47,8 +47,14 @@ struct client *client_init(char *hostname, char *port) {
     }
 
     freeaddrinfo(result);
+    client->packet = packet_init(header_init());
     printf("You (%s:%hu) are now connected to the server (%s:%s)\n", client->ip_addr, client->port_num, hostname, port);
     return client;
+}
+
+void client_free(struct client *client) {
+    packet_free(client->packet);
+    free(client);
 }
 
 /* disconnecting client from server */
@@ -84,8 +90,8 @@ void client_send_nickname_new_req(struct client *client, char *new_nickname) {
         return;
     }
 
-    packet_set(&client->packet, client->nickname, NICKNAME_NEW, new_nickname, "\0");
-    packet_send(&client->packet, client->socket_fd);
+    packet_set(client->packet, client->nickname, NICKNAME_NEW, new_nickname, "\0");
+    packet_send(client->packet, client->socket_fd);
 }
 
 void client_help() {
@@ -104,18 +110,18 @@ void client_help() {
 }
 
 void client_send_nickname_list_req(struct client *client) {
-    packet_set(&client->packet, client->nickname, NICKNAME_LIST, "\0", "\0");
-    packet_send(&client->packet, client->socket_fd);
+    packet_set(client->packet, client->nickname, NICKNAME_LIST, "\0", "\0");
+    packet_send(client->packet, client->socket_fd);
 }
 
 void client_send_nickname_infos_req(struct client *client, char *nickname) {
-    packet_set(&client->packet, client->nickname, NICKNAME_INFOS, nickname, "\0");
-    packet_send(&client->packet, client->socket_fd);
+    packet_set(client->packet, client->nickname, NICKNAME_INFOS, nickname, "\0");
+    packet_send(client->packet, client->socket_fd);
 }
 
 void client_send_broadcast_send_req(struct client *client, char *payload) {
-    packet_set(&client->packet, client->nickname, BROADCAST_SEND, "\0", payload);
-    packet_send(&client->packet, client->socket_fd);
+    packet_set(client->packet, client->nickname, BROADCAST_SEND, "\0", payload);
+    packet_send(client->packet, client->socket_fd);
 }
 
 void client_send_unicast_send_req(struct client *client, char *nickname_dest, char *payload) {
@@ -125,8 +131,8 @@ void client_send_unicast_send_req(struct client *client, char *nickname_dest, ch
         return;
     }
 
-    packet_set(&client->packet, client->nickname, UNICAST_SEND, nickname_dest, payload);
-    packet_send(&client->packet, client->socket_fd);
+    packet_set(client->packet, client->nickname, UNICAST_SEND, nickname_dest, payload);
+    packet_send(client->packet, client->socket_fd);
 }
 
 void client_send_multicast_create_req(struct client *client, char *name_channel) {
@@ -144,24 +150,24 @@ void client_send_multicast_create_req(struct client *client, char *name_channel)
         return;
     }
 
-    packet_set(&client->packet, client->nickname, MULTICAST_CREATE, name_channel, "\0");
-    packet_send(&client->packet, client->socket_fd);
+    packet_set(client->packet, client->nickname, MULTICAST_CREATE, name_channel, "\0");
+    packet_send(client->packet, client->socket_fd);
 }
 
 void client_send_multicast_list_req(struct client *client) {
-    packet_set(&client->packet, client->nickname, MULTICAST_LIST, "\0", "\0");
-    packet_send(&client->packet, client->socket_fd);
+    packet_set(client->packet, client->nickname, MULTICAST_LIST, "\0", "\0");
+    packet_send(client->packet, client->socket_fd);
 }
 
 void client_send_multicast_join_req(struct client *client, char *chatroom) {
-    packet_set(&client->packet, client->nickname, MULTICAST_JOIN, chatroom, "\0");
-    packet_send(&client->packet, client->socket_fd);
+    packet_set(client->packet, client->nickname, MULTICAST_JOIN, chatroom, "\0");
+    packet_send(client->packet, client->socket_fd);
 }
 
 void client_send_multicast_quit_req(struct client *client, char *name_channel) {
     /* if channel name exists, quitting the channel */
-    packet_set(&client->packet, client->nickname, MULTICAST_QUIT, name_channel, "\0");
-    packet_send(&client->packet, client->socket_fd);
+    packet_set(client->packet, client->nickname, MULTICAST_QUIT, name_channel, "\0");
+    packet_send(client->packet, client->socket_fd);
 }
 
 /* extracting name of file to send */
@@ -191,25 +197,25 @@ void client_send_file_req(struct client *client, char *nickname_dest, char *file
     char file[MSG_LEN];
     extract_filename(tmp, file);
     /* writing only name of file to send and not the whole path into the payload */
-    packet_set(&client->packet, client->nickname, FILE_REQUEST, nickname_dest, file);
-    packet_send(&client->packet, client->socket_fd);
+    packet_set(client->packet, client->nickname, FILE_REQUEST, nickname_dest, file);
+    packet_send(client->packet, client->socket_fd);
     /* Sending structure and payload */
     printf("File request sent to %s\n", nickname_dest);
 }
 
 void client_send_multicast_send_req(struct client *client, char *phrase, char *first_word) {
     if (phrase != NULL) {
-        sprintf(client->packet.payload, "%s %s", first_word, phrase);
+        sprintf(client->packet->payload, "%s %s", first_word, phrase);
     } else {
-        strcpy(client->packet.payload, first_word);
+        strcpy(client->packet->payload, first_word);
     }
 
-    packet_set(&client->packet, client->nickname, MULTICAST_SEND, "\0", client->packet.payload);
-    packet_send(&client->packet, client->socket_fd);
+    packet_set(client->packet, client->nickname, MULTICAST_SEND, "\0", client->packet->payload);
+    packet_send(client->packet, client->socket_fd);
 }
 
 void client_handle_nickname_new_res(struct client *client) {
-    strcpy(client->nickname, client->packet.header.infos);
+    strcpy(client->nickname, client->packet->header->infos);
 }
 
 static void file_accept_req(struct client *client, char *file_sender) {
@@ -218,10 +224,10 @@ static void file_accept_req(struct client *client, char *file_sender) {
     char listening_port[INFOS_LEN] = "0";
     /* creating a listening socket */
     struct peer *peer_dest = peer_init_peer_dest(client->ip_addr, listening_port, client->nickname);
-    sprintf(client->packet.payload, "%s:%hu", peer_dest->ip_addr, peer_dest->port_num);
+    sprintf(client->packet->payload, "%s:%hu", peer_dest->ip_addr, peer_dest->port_num);
     /* sending ip address and port for the client to connect */
-    packet_set(&client->packet, client->nickname, FILE_ACCEPT, file_sender, client->packet.payload);
-    packet_send(&client->packet, client->socket_fd);
+    packet_set(client->packet, client->nickname, FILE_ACCEPT, file_sender, client->packet->payload);
+    packet_send(client->packet, client->socket_fd);
 
     struct sockaddr sockaddr;
     memset(&sockaddr, 0, sizeof(sockaddr));
@@ -243,27 +249,27 @@ static void file_accept_req(struct client *client, char *file_sender) {
         recv(peer_dest->socket_fd, peer_dest->buffer, 0, MSG_WAITALL);
         close(peer_dest->socket_fd);
         printf("Connection closed with %s (%s:%hu)\n", file_sender, ip_addr_client, port_num_client);
-        free(peer_dest);
+        peer_free(peer_dest);
         return;
     }
 
     recv(peer_dest->socket_fd, peer_dest->buffer, 0, MSG_WAITALL);
     close(peer_dest->socket_fd);
     printf("Connection closed with %s\n", file_sender);
-    free(peer_dest);
+    peer_free(peer_dest);
 }
 
 static void file_reject_req(struct client *client) {
     memset(client->file_to_send, 0, NICK_LEN);
-    packet_set(&client->packet, client->nickname, FILE_REJECT, client->packet.header.infos, client->buffer);
+    packet_set(client->packet, client->nickname, FILE_REJECT, client->packet->header->infos, client->buffer);
     /* Sending structure and payload */
-    packet_send(&client->packet, client->socket_fd);
+    packet_send(client->packet, client->socket_fd);
     printf("You rejected the file transfer\n");
 }
 
 void client_handle_file_request_res(struct client *client) {
     strcpy(client->file_to_receive, client->buffer);
-    printf("[%s]: %s wants you to accept the transfer of the file named \"%s\". Do you accept ? [Y/N]\n", client->packet.header.from, client->packet.header.infos, client->file_to_receive);
+    printf("[%s]: %s wants you to accept the transfer of the file named \"%s\". Do you accept ? [Y/N]\n", client->packet->header->from, client->packet->header->infos, client->file_to_receive);
 
     /* loop waiting for user response for file request */
     while (1) {
@@ -279,7 +285,7 @@ void client_handle_file_request_res(struct client *client) {
         fflush(stdout);
 
         if (strcmp(client->buffer, "Y") == 0 || strcmp(client->buffer, "y") == 0) {
-            file_accept_req(client, client->packet.header.infos);
+            file_accept_req(client, client->packet->header->infos);
             return;
         } else if (strcmp(client->buffer, "N") == 0 || strcmp(client->buffer, "n") == 0) {
             file_reject_req(client);
@@ -292,7 +298,7 @@ void client_handle_file_request_res(struct client *client) {
 
 /* connecting to the server and sending file */
 void client_handle_file_accept_res(struct client *client) {
-    printf("[SERVER]: %s accepted file transfer\n", client->packet.header.from);
+    printf("[SERVER]: %s accepted file transfer\n", client->packet->header->from);
     /* getting ip address and port to connect to the server */
     char *ip_addr_server = strtok(client->buffer, ":");
     char *port_num_server = strtok(NULL, "\n");
@@ -301,26 +307,26 @@ void client_handle_file_accept_res(struct client *client) {
 
     if (!peer_send_file(peer_src, client->file_to_send)) {
         printf("Invalid filename\n");
-        packet_set(&peer_src->packet, peer_src->nickname, FILENAME, "", "");
-        packet_send(&peer_src->packet, peer_src->socket_fd);
+        packet_set(peer_src->packet, peer_src->nickname, FILENAME, "", "");
+        packet_send(peer_src->packet, peer_src->socket_fd);
         close(peer_src->socket_fd);
-        free(peer_src);
-        printf("Connection closed with %s\n", client->packet.header.from);
+        peer_free(peer_src);
+        printf("Connection closed with %s\n", client->packet->header->from);
 
         return;
     }
 
     /* receiving ack */
-    recv(peer_src->socket_fd, &peer_src->packet.header, sizeof(struct header), MSG_WAITALL);
+    recv(peer_src->socket_fd, peer_src->packet->header, sizeof(struct header), MSG_WAITALL);
 
-    if (peer_src->packet.header.type == FILE_ACK) {
-        printf("%s has received the file\n", client->packet.header.from);
+    if (peer_src->packet->header->type == FILE_ACK) {
+        printf("%s has received the file\n", client->packet->header->from);
     } else {
         printf("Problem in reception\n");
     }
 
     /* closing connection */
     close(peer_src->socket_fd);
-    free(peer_src);
-    printf("Connection closed with %s\n", client->packet.header.from);
+    peer_free(peer_src);
+    printf("Connection closed with %s\n", client->packet->header->from);
 }

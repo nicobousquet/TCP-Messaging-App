@@ -18,6 +18,8 @@ struct user_node {
 
 struct user_node *user_node_init(int socket_fd, char *ip_addr, u_short port_num, char *nickname, char *date);
 
+void user_node_free(struct user_node *user_node);
+
 void user_node_add(struct user_node **linked_list_users, struct user_node *new_user_node);
 
 void user_node_remove(struct user_node **linked_list_users, struct user_node *user_to_remove);

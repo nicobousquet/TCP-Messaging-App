@@ -11,6 +11,8 @@ struct chatroom {
 
 struct chatroom *chatroom_init(char *name_chatroom, struct user_node *first_user);
 
+void chatroom_free(struct chatroom *chatroom);
+
 struct chatroom **chatroom_get_by_user(struct chatroom **list_chatrooms, struct user_node *user);
 
 struct chatroom **chatroom_get_by_name(struct chatroom **list_chatrooms, char *chatroom_name);

@@ -4,9 +4,13 @@
 #include "header.h"
 
 struct packet {
-    struct header header;
+    struct header *header;
     char payload[MSG_LEN];
 };
+
+struct packet *packet_init(struct header *header);
+
+void packet_free(struct packet *packet);
 
 void packet_set(struct packet *packet, char *from, enum messageType type, char *infos, char *payload);
 

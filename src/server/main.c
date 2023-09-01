@@ -99,11 +99,11 @@ int main(int argc, char *argv[]) {
                         }
                     }
 
-                    packet_set(&server->packet, "SERVER", DEFAULT, "", "Please, login with /nick <your nickname>");
-                    packet_send(&server->packet, socket_fd);
+                    packet_set(server->packet, "SERVER", DEFAULT, "", "Please, login with /nick <your nickname>");
+                    packet_send(server->packet, socket_fd);
                 } else {
-                    packet_set(&server->packet, "SERVER", DEFAULT, "", "Server at capacity! Cannot accept more connections :(");
-                    packet_send(&server->packet, socket_fd);
+                    packet_set(server->packet, "SERVER", DEFAULT, "", "Server at capacity! Cannot accept more connections :(");
+                    packet_send(server->packet, socket_fd);
                 }
 
                 /* Set .revents of listening socket back to default */
@@ -138,12 +138,12 @@ int main(int argc, char *argv[]) {
 
                 server->current_user = current;
                 /* Cleaning memory */
-                memset(&server->packet.header, 0, sizeof(struct header));
-                memset(server->packet.payload, 0, MSG_LEN);
+                memset(server->packet->header, 0, sizeof(struct header));
+                memset(server->packet->payload, 0, MSG_LEN);
 
                 /* Receiving structure */
                 /* if client disconnected */
-                if ((recv(server->current_user->socket_fd, &server->packet.header, sizeof(struct header), MSG_WAITALL)) <= 0) {
+                if ((recv(server->current_user->socket_fd, server->packet->header, sizeof(struct header), MSG_WAITALL)) <= 0) {
                     server_disconnect_user(server, server->current_user);
                     close(pollfds[i].fd);
                     pollfds[i].fd = -1;
@@ -153,22 +153,22 @@ int main(int argc, char *argv[]) {
                 }
 
                 /* Receiving message */
-                memset(server->packet.payload, 0, MSG_LEN);
-                if (server->packet.header.len_payload != 0 && recv(server->current_user->socket_fd, server->packet.payload, server->packet.header.len_payload, MSG_WAITALL) <= 0) {
+                memset(server->packet->payload, 0, MSG_LEN);
+                if (server->packet->header->len_payload != 0 && recv(server->current_user->socket_fd, server->packet->payload, server->packet->header->len_payload, MSG_WAITALL) <= 0) {
                     perror("recv");
                     break;
                 }
 
-                printf("len_payload: %ld / from: %s / type: %s / infos: %s\n", server->packet.header.len_payload, server->packet.header.from, msg_type_str[server->packet.header.type], server->packet.header.infos);
-                printf("payload: %s\n", server->packet.payload);
+                printf("len_payload: %ld / from: %s / type: %s / infos: %s\n", server->packet->header->len_payload, server->packet->header->from, msg_type_str[server->packet->header->type], server->packet->header->infos);
+                printf("payload: %s\n", server->packet->payload);
 
-                if (!server->current_user->is_logged_in && server->packet.header.type != NICKNAME_NEW) {
-                    packet_set(&server->packet, "SERVER", DEFAULT, "", "Please, login with /nick <your nickname>");
-                    packet_send(&server->packet, server->current_user->socket_fd);
+                if (!server->current_user->is_logged_in && server->packet->header->type != NICKNAME_NEW) {
+                    packet_set(server->packet, "SERVER", DEFAULT, "", "Please, login with /nick <your nickname>");
+                    packet_send(server->packet, server->current_user->socket_fd);
                     break;
                 }
 
-                switch (server->packet.header.type) {
+                switch (server->packet->header->type) {
                     /* if user wants to change/create nickname */
                     case NICKNAME_NEW:
                         server_handle_nickname_new_req(server);

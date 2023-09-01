@@ -15,6 +15,10 @@ struct user_node *user_node_init(int socket_fd, char *ip_addr, u_short port_num,
     return user;
 }
 
+void user_node_free(struct user_node *user_node) {
+    free(user_node);
+}
+
 /* adding user in the list */
 void user_node_add(struct user_node **linked_list_users, struct user_node *new_user_node) {
     new_user_node->next = *linked_list_users;
@@ -23,9 +27,9 @@ void user_node_add(struct user_node **linked_list_users, struct user_node *new_u
 
 /* freeing user node in the list */
 void user_node_remove(struct user_node **linked_list_users, struct user_node *user_to_remove) {
-    struct user_node *newNode = malloc(sizeof(struct user_node));
-    newNode->next = *linked_list_users;
-    *linked_list_users = newNode;
+    struct user_node *newNode = user_node_init(0, "", 0, "", "");
+    user_node_add(linked_list_users, newNode);
+
     struct user_node *current;
 
     /* looking for the user we want to free */
@@ -38,10 +42,10 @@ void user_node_remove(struct user_node **linked_list_users, struct user_node *us
     /* freeing user */
     struct user_node *tmp = current->next;
     current->next = (current->next)->next;
-    free(tmp);
+    user_node_free(tmp);
 
     /* freeing fake first node of the list */
     tmp = *linked_list_users;
     *linked_list_users = (*linked_list_users)->next;
-    free(tmp);
+    user_node_free(tmp);
 }

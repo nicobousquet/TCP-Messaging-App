@@ -11,7 +11,7 @@ struct client {
     int socket_fd;
     char ip_addr[16];
     u_short port_num;
-    struct packet packet;
+    struct packet *packet;
     char buffer[MSG_LEN];
     char nickname[NICK_LEN];
     char file_to_send[NICK_LEN];
@@ -51,5 +51,7 @@ void client_handle_file_accept_res(struct client *client);
 void client_disconnect_from_server(struct pollfd *pollfds);
 
 struct client *client_init(char *hostname, char *port);
+
+void client_free(struct client *client);
 
 #endif //CLIENT_H

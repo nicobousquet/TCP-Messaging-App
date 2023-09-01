@@ -37,13 +37,13 @@ int main(int argc, char *argv[]) {
         }
 
         for (int i = 0; i < NUM_FDS; i++) {
-            memset(&client->packet.header, 0, sizeof(struct header));
+            memset(client->packet->header, 0, sizeof(struct header));
             memset(client->buffer, 0, MSG_LEN);
-            memset(client->packet.payload, 0, MSG_LEN);
+            memset(client->packet->payload, 0, MSG_LEN);
 
             /* if data comes from keyboard */
             if (pollfds[i].fd == STDIN_FILENO && pollfds[i].revents & POLLIN) {
-                strcpy(client->packet.header.from, client->nickname);
+                strcpy(client->packet->header->from, client->nickname);
                 /* putting data into buffer */
                 int n = 0;
 
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
                             client_send_multicast_quit_req(client, name_channel);
                         } else {
                             client_disconnect_from_server(pollfds);
-                            free(client);
+                            client_free(client);
                             exit(EXIT_SUCCESS);
                         }
                     } else if (strcmp(first_word, "/send") == 0) {
@@ -102,23 +102,23 @@ int main(int argc, char *argv[]) {
             else if (pollfds[i].fd != STDIN_FILENO && pollfds[i].revents & POLLIN) {
 
                 /* Receiving structure */
-                if (recv(client->socket_fd, &client->packet.header, sizeof(struct header), MSG_WAITALL) <= 0) {
+                if (recv(client->socket_fd, client->packet->header, sizeof(struct header), MSG_WAITALL) <= 0) {
                     printf("Server has crashed\n");
                     client_disconnect_from_server(pollfds);
-                    free(client);
+                    client_free(client);
                     exit(EXIT_FAILURE);
                 }
 
                 /* Receiving message */
-                if (client->packet.header.len_payload != 0 && recv(client->socket_fd, client->buffer, client->packet.header.len_payload, MSG_WAITALL) <= 0) {
+                if (client->packet->header->len_payload != 0 && recv(client->socket_fd, client->buffer, client->packet->header->len_payload, MSG_WAITALL) <= 0) {
                     perror("recv");
                 }
 
-                switch (client->packet.header.type) {
+                switch (client->packet->header->type) {
                     /* changing nickname */
                     case NICKNAME_NEW:
                         client_handle_nickname_new_res(client);
-                        printf("[%s]: %s\n", client->packet.header.from, client->buffer);
+                        printf("[%s]: %s\n", client->packet->header->from, client->buffer);
                         pollfds[i].revents = 0;
                         break;
 
@@ -133,7 +133,7 @@ int main(int argc, char *argv[]) {
                         break;
 
                     default:
-                        printf("[%s]: %s\n", client->packet.header.from, client->buffer);
+                        printf("[%s]: %s\n", client->packet->header->from, client->buffer);
                         pollfds[i].revents = 0;
                         break;
                 }

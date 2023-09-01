@@ -10,7 +10,7 @@ struct peer {
     char ip_addr[16];
     char nickname[NICK_LEN];
     char buffer[MSG_LEN];
-    struct packet packet;
+    struct packet *packet;
 };
 
 struct peer *peer_init_peer_dest(char *listening_addr, char *listening_port, char *nickname_user);
@@ -20,5 +20,7 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive);
 struct peer *peer_init_peer_src(char *hostname, char *port);
 
 int peer_send_file(struct peer *peer_src, char *file_to_send);
+
+void peer_free(struct peer *peer);
 
 #endif //PEER_H

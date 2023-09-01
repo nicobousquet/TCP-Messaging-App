@@ -13,6 +13,10 @@ struct chatroom *chatroom_init(char *name_chatroom, struct user_node *first_user
     return new_chatroom;
 }
 
+void chatroom_free(struct chatroom *chatroom) {
+    free(chatroom);
+}
+
 struct chatroom **chatroom_get_by_user(struct chatroom **list_chatrooms, struct user_node *user) {
     for (int j = 0; j < NUM_MAX_CHATROOMS; j++) {
         if (list_chatrooms[j] != NULL) {
