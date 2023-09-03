@@ -8,6 +8,7 @@ struct server {
     int socket_fd;
     char ip_addr[16];
     u_short port_num;
+    struct packet *packet;
     struct chatroom *list_chatrooms[NUM_MAX_CHATROOMS];
     int num_chatrooms; /* number of chatrooms not empty */
     struct user_node *linked_list_users;

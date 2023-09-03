@@ -43,6 +43,8 @@ struct server *server_init(char *port) {
                 exit(EXIT_FAILURE);
             }
 
+            server->packet = packet_init(header_init());
+
             printf("Listening on %s:%hu\n", server->ip_addr, server->port_num);
 
             return server;
