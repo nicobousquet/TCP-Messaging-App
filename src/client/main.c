@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
                 }
 
                 /* Receiving message */
-                if (client->packet->header->len_payload != 0 && recv(client->socket_fd, client->buffer, client->packet->header->len_payload, MSG_WAITALL) <= 0) {
+                if (client->packet->header->len_payload != 0 && recv(client->socket_fd, client->packet->payload, client->packet->header->len_payload, MSG_WAITALL) <= 0) {
                     perror("recv");
                 }
 
@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
                     /* changing nickname */
                     case NICKNAME_NEW:
                         client_handle_nickname_new_res(client);
-                        printf("[%s]: %s\n", client->packet->header->from, client->buffer);
+                        printf("[%s]: %s\n", client->packet->header->from, client->packet->payload);
                         pollfds[i].revents = 0;
                         break;
 
@@ -133,7 +133,7 @@ int main(int argc, char *argv[]) {
                         break;
 
                     default:
-                        printf("[%s]: %s\n", client->packet->header->from, client->buffer);
+                        printf("[%s]: %s\n", client->packet->header->from, client->packet->payload);
                         pollfds[i].revents = 0;
                         break;
                 }

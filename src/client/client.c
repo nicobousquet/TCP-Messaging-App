@@ -268,7 +268,7 @@ static void file_reject_req(struct client *client) {
 }
 
 void client_handle_file_request_res(struct client *client) {
-    strcpy(client->file_to_receive, client->buffer);
+    strcpy(client->file_to_receive, client->packet->payload);
     printf("[%s]: %s wants you to accept the transfer of the file named \"%s\". Do you accept ? [Y/N]\n", client->packet->header->from, client->packet->header->infos, client->file_to_receive);
 
     /* loop waiting for user response for file request */
@@ -300,7 +300,7 @@ void client_handle_file_request_res(struct client *client) {
 void client_handle_file_accept_res(struct client *client) {
     printf("[SERVER]: %s accepted file transfer\n", client->packet->header->from);
     /* getting ip address and port to connect to the server */
-    char *ip_addr_server = strtok(client->buffer, ":");
+    char *ip_addr_server = strtok(client->packet->payload, ":");
     char *port_num_server = strtok(NULL, "\n");
     /* connecting to the server */
     struct peer *peer_src = peer_init_peer_src(ip_addr_server, port_num_server);
