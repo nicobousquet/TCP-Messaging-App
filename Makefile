@@ -3,6 +3,7 @@ CFLAGS = -Wall -Wextra -g -std=gnu99
 SRC_DIR = src
 OBJ_DIR = obj
 BIN_DIR = bin
+INBOX_DIR = inbox
 
 CLIENT_SRC = $(wildcard $(SRC_DIR)/client/*.c)
 SERVER_SRC = $(wildcard $(SRC_DIR)/server/*.c)
@@ -33,7 +34,7 @@ $(OBJ_DIR)/client $(OBJ_DIR)/server $(OBJ_DIR)/packet $(BIN_DIR):
 	mkdir -p $@
 
 clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR)
+	rm -rf $(OBJ_DIR) $(BIN_DIR) $(INBOX_DIR)
 
 .PHONY: all clean
 
