@@ -92,8 +92,10 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
     }
 
     char filename_dest[2 * NICK_LEN];
+
     /* creating the path of the received file */
     sprintf(filename_dest, "inbox/%s", file_to_receive);
+
     /* opening the file */
     int fd_new_file = open(filename_dest, O_RDWR | O_CREAT | O_APPEND, S_IRWXU);
 
@@ -108,14 +110,17 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
     /* while we did not receive all the data of the file */
     while (offset != size) {
         recv(peer_dest->socket_fd, peer_dest->packet->header, sizeof(struct header), MSG_WAITALL);
+
         /* receiving file by frame of max 1024 bytes */
         recv(peer_dest->socket_fd, peer_dest->buffer, peer_dest->packet->header->len_payload, MSG_WAITALL);
+
         /* writing received data in a new file */
         if (-1 == (ret = write(fd_new_file, peer_dest->buffer, peer_dest->packet->header->len_payload))) {
             perror("Writing in new file");
         }
 
         offset += ret;
+
         /* progress bar to show the advancement of downloading */
         char progress_bar[12] = {'[', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', ']'};
         int progression = (int) (((double) offset / (double) size) * 100);
@@ -212,6 +217,7 @@ int peer_send_file(struct peer *peer_src, char *file_to_send) {
     /* getting the size of the file to send */
     long size = sb.st_size;
     sprintf(peer_src->packet->payload, "%lu", size);
+
     /* sending the size of the file to be sent */
     packet_set(peer_src->packet, peer_src->nickname, FILE_SEND, "\0", peer_src->packet->payload);
     packet_send(peer_src->packet, peer_src->socket_fd);
@@ -237,9 +243,11 @@ int peer_send_file(struct peer *peer_src, char *file_to_send) {
 
         peer_src->packet->header->len_payload = ret;
         packet_send(peer_src->packet, peer_src->socket_fd);
+
         /* waiting data to be read by dest user in the socket file*/
         usleep(1000);
         offset += ret;
+
         /* displaying progression bar while sending file */
         char progress_bar[12] = {'[', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', ']'}; //barre de progression de l'envoi du fichier
         int progression = (int) (((double) offset / (double) size) * 100);

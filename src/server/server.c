@@ -144,6 +144,7 @@ void server_handle_nickname_list_req(struct server *server) {
 
 void server_handle_nickname_infos_req(struct server *server) {
     strcpy(server->packet->header->from, "SERVER");
+
     /* getting user we want information of */
     struct user_node *nickname_dest = server_get_user(server, server->packet->header->infos);
 

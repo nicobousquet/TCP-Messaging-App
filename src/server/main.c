@@ -42,9 +42,10 @@ int main(int argc, char *argv[]) {
     }
 
     struct server *server = server_init(argv[1]);
-    /* running server */
+
     /* Declare array of struct pollfd */
     struct pollfd pollfds[NUM_MAX_USERS + 1];
+
     /* Init first slot with listening socket */
     pollfds[0].fd = server->socket_fd;
     pollfds[0].events = POLLIN;
@@ -80,6 +81,7 @@ int main(int argc, char *argv[]) {
                 /* getting ip address and port number of the new connection */
                 getpeername(socket_fd, &clientAddr, &size);
                 struct sockaddr_in *sockaddrInPtr = (struct sockaddr_in *) &clientAddr;
+
                 /* adding a new user */
                 time_t ltime;
                 time(&ltime);
@@ -120,6 +122,7 @@ int main(int argc, char *argv[]) {
 
                 /* If a socket previously created to communicate with a client detects a disconnection from the client side */
                 server_disconnect_user(server, current);
+
                 /* Close socket and set struct pollfd back to default */
                 close(pollfds[i].fd);
                 pollfds[i].fd = -1;
@@ -137,6 +140,7 @@ int main(int argc, char *argv[]) {
                 }
 
                 server->current_user = current;
+
                 /* Cleaning memory */
                 memset(server->packet->header, 0, sizeof(struct header));
                 memset(server->packet->payload, 0, MSG_LEN);
