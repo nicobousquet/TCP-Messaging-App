@@ -366,8 +366,6 @@ void server_handle_multicast_join_req(struct server *server) {
     server->packet->header->len_payload = strlen(server->packet->payload);
     strcpy(server->packet->header->from, "SERVER");
     packet_send(server->packet, server->current_user->socket_fd);
-
-    return;
 }
 
 void server_handle_multicast_quit_req(struct server *server) {
