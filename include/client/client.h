@@ -6,13 +6,12 @@
 #include "../packet/packet.h"
 #include <sys/types.h>
 #include <poll.h>
+#include <arpa/inet.h>
 
 struct client {
     int socket_fd;
-    char ip_addr[16];
+    char ip_addr[INET_ADDRSTRLEN];
     u_short port_num;
-    struct packet *packet;
-    char buffer[MSG_LEN];
     char nickname[NICK_LEN];
     char file_to_send[NICK_LEN];
     char file_to_receive[NICK_LEN];
@@ -40,13 +39,13 @@ void client_send_multicast_quit_req(struct client *client, char *name_channel);
 
 void client_send_file_req(struct client *client, char *nickname_dest, char *filename);
 
-void client_send_multicast_send_req(struct client *client, char *phrase, char *first_word);
+void client_send_multicast_send_req(struct client *client, char *sentence, char *first_word);
 
-void client_handle_nickname_new_res(struct client *client);
+void client_handle_nickname_new_res(struct client *client, struct packet *res_packet);
 
-void client_handle_file_request_res(struct client *client);
+void client_handle_file_request_res(struct client *client, struct packet *req_packet);
 
-void client_handle_file_accept_res(struct client *client);
+void client_handle_file_accept_res(struct client *client, struct packet *res_packet);
 
 void client_disconnect_from_server(struct pollfd *pollfds);
 

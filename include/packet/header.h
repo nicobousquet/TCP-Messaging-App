@@ -33,9 +33,7 @@ struct header {
     char infos[INFOS_LEN]; /* additional infos on the message */
 };
 
-struct header *header_init();
-
-void header_free(struct header *header);
+struct header header_init(unsigned long len_payload, char *from, enum messageType type, char *infos);
 
 void header_set(struct header *header, unsigned long len_payload, char *from, enum messageType type, char *infos);
 

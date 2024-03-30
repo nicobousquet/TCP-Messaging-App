@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -g -std=gnu99
+CFLAGS = -Wall -Wextra -Wpedantic -g -std=gnu99
 SRC_DIR = src
 OBJ_DIR = obj
 BIN_DIR = bin

@@ -1,27 +1,25 @@
 #include "../../include/packet/header.h"
 #include <string.h>
-#include <stdlib.h>
-
-struct header *header_init() {
-    struct header *header = malloc(sizeof(struct header));
-    memset(header, 0, sizeof(struct header));
-    return header;
-}
-
-void header_free(struct header *header) {
-    free(header);
-}
 
 void header_set(struct header *header, unsigned long len_payload, char *from, enum messageType type, char *infos) {
     if (from != NULL) {
-        strcpy(header->from, from);
+        memset(header->from, 0, 2 * NICK_LEN);
+        strncpy(header->from, from, 2 * NICK_LEN - 1);
     }
 
     header->type = type;
 
     if (infos != NULL) {
-        strcpy(header->infos, infos);
+        memset(header->infos, 0, INFOS_LEN);
+        strncpy(header->infos, infos, INFOS_LEN - 1);
     }
 
     header->len_payload = len_payload;
+}
+
+struct header header_init(unsigned long len_payload, char *from, enum messageType type, char *infos) {
+    struct header header;
+    header_set(&header, len_payload, from, type, infos);
+
+    return header;
 }

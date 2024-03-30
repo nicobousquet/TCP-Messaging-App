@@ -3,11 +3,12 @@
 
 #include "../constants.h"
 #include <sys/types.h>
+#include <arpa/inet.h>
 
 /* structure of a user */
 struct user_node {
     int socket_fd;
-    char ip_addr[16];
+    char ip_addr[INET_ADDRSTRLEN];
     u_short port_num;
     char nickname[NICK_LEN];
     int is_logged_in;

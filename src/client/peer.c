@@ -11,7 +11,6 @@
 #include <fcntl.h>
 
 void peer_free(struct peer *peer) {
-    packet_free(peer->packet);
     free(peer);
 }
 
@@ -40,7 +39,7 @@ struct peer *peer_init_peer_dest(char *listening_addr, char *listening_port, cha
             struct sockaddr_in my_addr;
             socklen_t len = sizeof(my_addr);
             getsockname(peer_dest->socket_fd, (struct sockaddr *) &my_addr, &len);
-            inet_ntop(AF_INET, &my_addr.sin_addr, peer_dest->ip_addr, 16);
+            inet_ntop(AF_INET, &my_addr.sin_addr, peer_dest->ip_addr, INET_ADDRSTRLEN);
             peer_dest->port_num = ntohs(my_addr.sin_port);
             strcpy(peer_dest->nickname, nickname_user);
             freeaddrinfo(result);
@@ -49,8 +48,6 @@ struct peer *peer_init_peer_dest(char *listening_addr, char *listening_port, cha
                 perror("listen()\n");
                 exit(EXIT_FAILURE);
             }
-
-            peer_dest->packet = packet_init(header_init());
 
             printf("Listening on %s:%hu\n", peer_dest->ip_addr, peer_dest->port_num);
 
@@ -68,23 +65,16 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
     /* receiving file */
     printf("Receiving the file...\n");
 
-    /* receiving a first structure to check if file exists on client's computer and if yes, with the size of the file */
-    if (recv(peer_dest->socket_fd, peer_dest->packet->header, sizeof(struct header), MSG_WAITALL) <= 0) {
-        perror("recv FILE_SEND");
-        exit(EXIT_FAILURE);
-    }
+    struct packet rec_packet;
+
+    packet_rec(&rec_packet, peer_dest->socket_fd);
 
     /* if name of the file to send did not exist on the client's computer
      * file transfer is aborted */
-    if (peer_dest->packet->header->type == FILENAME) {
+    if (rec_packet.header.type == FILENAME) {
         return 0;
     }
 
-    /* receiving the size of the file */
-    if (recv(peer_dest->socket_fd, peer_dest->buffer, peer_dest->packet->header->len_payload, MSG_WAITALL) <= 0) {
-        perror("recv file size");
-        exit(EXIT_FAILURE);
-    }
     /* receiving data of the file from client and saving it into a new file on our computer */
     /* creating directory where the received file will be stored */
     if (mkdir("inbox", S_IRWXU | S_IRWXG | S_IRWXO) && errno != EEXIST) {
@@ -104,22 +94,23 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
         exit(EXIT_FAILURE);
     }
 
-    long size = strtol(peer_dest->buffer, NULL, 10);
+    long size = strtol(rec_packet.payload, NULL, 10);
     long ret = 0, offset = 0;
 
     /* while we did not receive all the data of the file */
     while (offset != size) {
-        recv(peer_dest->socket_fd, peer_dest->packet->header, sizeof(struct header), MSG_WAITALL);
 
-        /* receiving file by frame of max 1024 bytes */
-        recv(peer_dest->socket_fd, peer_dest->buffer, peer_dest->packet->header->len_payload, MSG_WAITALL);
+        packet_rec(&rec_packet, peer_dest->socket_fd);
 
         /* writing received data in a new file */
-        if (-1 == (ret = write(fd_new_file, peer_dest->buffer, peer_dest->packet->header->len_payload))) {
+        if (-1 == (ret = write(fd_new_file, rec_packet.payload, rec_packet.header.len_payload))) {
             perror("Writing in new file");
         }
 
         offset += ret;
+
+        struct packet res_packet = packet_init(peer_dest->nickname, FILE_ACK, "\0", "\0");
+        packet_send(&res_packet, peer_dest->socket_fd);
 
         /* progress bar to show the advancement of downloading */
         char progress_bar[12] = {'[', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', ']'};
@@ -139,13 +130,10 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
 
     printf("File received successfully and saved in %s\n", filename_dest);
 
-    packet_set(peer_dest->packet, peer_dest->nickname, FILE_ACK, "", "");
-    packet_send(peer_dest->packet, peer_dest->socket_fd);
-
     return 1;
 }
 
-struct peer *peer_init_peer_src(char *hostname, char *port) {
+struct peer *peer_init_peer_src(char *hostname, char *port, char *nickname_user) {
     struct peer *peer_src = malloc(sizeof(struct peer));
     memset(peer_src, 0, sizeof(struct peer));
     struct addrinfo hints, *result, *rp;
@@ -171,6 +159,7 @@ struct peer *peer_init_peer_src(char *hostname, char *port) {
             getsockname(peer_src->socket_fd, (struct sockaddr *) sockaddr_in_ptr, &len);
             peer_src->port_num = ntohs(sockaddr_in_ptr->sin_port);
             strcpy(peer_src->ip_addr, inet_ntoa(sockaddr_in_ptr->sin_addr));
+            strcpy(peer_src->nickname, nickname_user);
             printf("You (%s:%hu) are now connected to %s:%s\n", peer_src->ip_addr, peer_src->port_num, hostname, port);
 
             break;
@@ -184,8 +173,6 @@ struct peer *peer_init_peer_src(char *hostname, char *port) {
     }
 
     freeaddrinfo(result);
-
-    peer_src->packet = packet_init(header_init());
 
     return peer_src;
 }
@@ -216,19 +203,23 @@ int peer_send_file(struct peer *peer_src, char *file_to_send) {
 
     /* getting the size of the file to send */
     long size = sb.st_size;
-    sprintf(peer_src->packet->payload, "%lu", size);
+
+    char payload[MSG_LEN];
+    memset(payload, 0, MSG_LEN);
+    sprintf(payload, "%lu", size);
 
     /* sending the size of the file to be sent */
-    packet_set(peer_src->packet, peer_src->nickname, FILE_SEND, "\0", peer_src->packet->payload);
-    packet_send(peer_src->packet, peer_src->socket_fd);
-    memset(peer_src->packet->payload, 0, MSG_LEN);
+    struct packet packet = packet_init(peer_src->nickname, FILE_SEND, "\0", payload);
+    packet_send(&packet, peer_src->socket_fd);
+
 
     long offset = 0;
     /* while file not totally sent */
     /* sending file by frames of 1024 Bytes */
     while (offset != size) {
-        /* putting frame of 1024 Bytes in payload */
-        long ret = read(fileFd, peer_src->packet->payload, MSG_LEN);
+        /* putting frame of 1023 Bytes in payload */
+        memset(payload, 0, MSG_LEN);
+        long ret = read(fileFd, payload, MSG_LEN);
 
         if (-1 == ret) {
             perror("Reading from client socket");
@@ -241,11 +232,21 @@ int peer_send_file(struct peer *peer_src, char *file_to_send) {
             break;
         }
 
-        peer_src->packet->header->len_payload = ret;
-        packet_send(peer_src->packet, peer_src->socket_fd);
+        strcpy(packet.header.from, peer_src->nickname);
+        memcpy(packet.payload, payload, ret);
+        packet.header.len_payload = ret;
+        packet.header.type = FILE_SEND;
+
+        packet_send(&packet, peer_src->socket_fd);
 
         /* waiting data to be read by dest user in the socket file*/
-        usleep(1000);
+        packet_rec(&packet, peer_src->socket_fd);
+
+        if (packet.header.type != FILE_ACK) {
+            printf("Problem in reception\n");
+            return 0;
+        }
+
         offset += ret;
 
         /* displaying progression bar while sending file */
@@ -264,6 +265,7 @@ int peer_send_file(struct peer *peer_src, char *file_to_send) {
         printf("\033[1A\33[2K\r");
     }
 
-    printf("File sent successfully\n");
+    printf("File sent successfully and received successfully\n");
+
     return 1;
 }

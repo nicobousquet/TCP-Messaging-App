@@ -31,7 +31,7 @@ char *msg_type_str[] = {
         "HELP"
 };
 
-void usage() {
+static void usage() {
     printf("Usage: ./server port_number\n");
     exit(EXIT_FAILURE);
 }
@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
                 time(&ltime);
 
                 if (server->num_users < NUM_MAX_USERS) {
-                    struct user_node *user = user_node_init(socket_fd, inet_ntoa(sockaddrInPtr->sin_addr), ntohs(sockaddrInPtr->sin_port), "", asctime(localtime(&ltime)));
+                    struct user_node *user = user_node_init(socket_fd, inet_ntoa(sockaddrInPtr->sin_addr), ntohs(sockaddrInPtr->sin_port), "\0", asctime(localtime(&ltime)));
                     printf("Client (%s:%hu) connected on socket %i.\n", user->ip_addr, user->port_num, user->socket_fd);
                     user_node_add(&server->linked_list_users, user);
                     server->num_users++;
@@ -101,27 +101,28 @@ int main(int argc, char *argv[]) {
                         }
                     }
 
-                    packet_set(server->packet, "SERVER", DEFAULT, "", "Please, login with /nick <your nickname>");
-                    packet_send(server->packet, socket_fd);
+                    struct packet res_packet = packet_init("SERVER", DEFAULT, "\0", "Please, login with /nick <your nickname>");
+                    packet_send(&res_packet, socket_fd);
+
                 } else {
-                    packet_set(server->packet, "SERVER", DEFAULT, "", "Server at capacity! Cannot accept more connections :(");
-                    packet_send(server->packet, socket_fd);
+                    struct packet res_packet = packet_init("SERVER", DEFAULT, "\0", "Server at capacity! Cannot accept more connections :(");
+                    packet_send(&res_packet, socket_fd);
                 }
 
                 /* Set .revents of listening socket back to default */
                 pollfds[i].revents = 0;
             } else if (pollfds[i].fd != server->socket_fd && pollfds[i].revents & POLLHUP) {
                 /* getting the user which is doing the request */
-                struct user_node *current = NULL;
+                struct user_node *current_user = NULL;
 
-                for (current = server->linked_list_users; current != NULL; current = current->next) {
-                    if (current->socket_fd == pollfds[i].fd) {
+                for (current_user = server->linked_list_users; current_user != NULL; current_user = current_user->next) {
+                    if (current_user->socket_fd == pollfds[i].fd) {
                         break;
                     }
                 }
 
                 /* If a socket previously created to communicate with a client detects a disconnection from the client side */
-                server_disconnect_user(server, current);
+                server_disconnect_user(server, current_user);
 
                 /* Close socket and set struct pollfd back to default */
                 close(pollfds[i].fd);
@@ -131,23 +132,19 @@ int main(int argc, char *argv[]) {
             } else if (pollfds[i].fd != server->socket_fd && pollfds[i].revents & POLLIN) {
                 /* If a socket different from the listening socket is active */
                 /* getting the user which is doing the request */
-                struct user_node *current = NULL;
+                struct user_node *current_user = NULL;
 
-                for (current = server->linked_list_users; current != NULL; current = current->next) {
-                    if (current->socket_fd == pollfds[i].fd) {
+                for (current_user = server->linked_list_users; current_user != NULL; current_user = current_user->next) {
+                    if (current_user->socket_fd == pollfds[i].fd) {
                         break;
                     }
                 }
 
-                server->current_user = current;
+                server->current_user = current_user;
 
-                /* Cleaning memory */
-                memset(server->packet->header, 0, sizeof(struct header));
-                memset(server->packet->payload, 0, MSG_LEN);
+                struct packet req_packet;
 
-                /* Receiving structure */
-                /* if client disconnected */
-                if ((recv(server->current_user->socket_fd, server->packet->header, sizeof(struct header), MSG_WAITALL)) <= 0) {
+                if (packet_rec(&req_packet, server->current_user->socket_fd) <= 0) {
                     server_disconnect_user(server, server->current_user);
                     close(pollfds[i].fd);
                     pollfds[i].fd = -1;
@@ -156,86 +153,80 @@ int main(int argc, char *argv[]) {
                     break;
                 }
 
-                /* Receiving message */
-                memset(server->packet->payload, 0, MSG_LEN);
-                if (server->packet->header->len_payload != 0 && recv(server->current_user->socket_fd, server->packet->payload, server->packet->header->len_payload, MSG_WAITALL) <= 0) {
-                    perror("recv");
+                printf("len_payload: %ld / from: %s / type: %s / infos: %s\n", req_packet.header.len_payload, req_packet.header.from, msg_type_str[req_packet.header.type], req_packet.header.infos);
+                printf("payload: %s\n", req_packet.payload);
+
+                if (!server->current_user->is_logged_in && req_packet.header.type != NICKNAME_NEW) {
+                    struct packet res_packet = packet_init("SERVER", DEFAULT, "\0", "Please, login with /nick <your nickname>");
+                    packet_send(&res_packet, server->current_user->socket_fd);
+
                     break;
                 }
 
-                printf("len_payload: %ld / from: %s / type: %s / infos: %s\n", server->packet->header->len_payload, server->packet->header->from, msg_type_str[server->packet->header->type], server->packet->header->infos);
-                printf("payload: %s\n", server->packet->payload);
-
-                if (!server->current_user->is_logged_in && server->packet->header->type != NICKNAME_NEW) {
-                    packet_set(server->packet, "SERVER", DEFAULT, "", "Please, login with /nick <your nickname>");
-                    packet_send(server->packet, server->current_user->socket_fd);
-                    break;
-                }
-
-                switch (server->packet->header->type) {
+                switch (req_packet.header.type) {
                     /* if user wants to change/create nickname */
                     case NICKNAME_NEW:
-                        server_handle_nickname_new_req(server);
+                        server_handle_nickname_new_req(server, &req_packet);
                         break;
 
                     /* if user wants to see the list of other connected users */
                     case NICKNAME_LIST:
-                        server_handle_nickname_list_req(server);
+                        server_handle_nickname_list_req(server, &req_packet);
                         break;
 
                     /* if user wants to know the ip address, remote port number and connection date of another user */
                     case NICKNAME_INFOS:
-                        server_handle_nickname_infos_req(server);
+                        server_handle_nickname_infos_req(server, &req_packet);
                         break;
 
                     /* if user wants to send a message to all the users */
                     case BROADCAST_SEND:
-                        server_handle_broadcast_send_req(server);
+                        server_handle_broadcast_send_req(server, &req_packet);
                         break;
 
                     /* if user wants to send a message to another specific user */
                     case UNICAST_SEND:
-                        server_handle_unicast_send_req(server);
+                        server_handle_unicast_send_req(server, &req_packet);
                         break;
 
                     /* if user wants to create a chatroom */
                     case MULTICAST_CREATE:
-                        server_handle_multicast_create_req(server);
+                        server_handle_multicast_create_req(server, &req_packet);
                         break;
 
                     /* if user wants to have the list of all the chatrooms created */
                     case MULTICAST_LIST:
-                        server_handle_multicast_list_req(server);
+                        server_handle_multicast_list_req(server, &req_packet);
                         break;
 
                     /* if user wants to join a chatroom */
                     case MULTICAST_JOIN:
-                        server_handle_multicast_join_req(server);
+                        server_handle_multicast_join_req(server, &req_packet);
                         break;
 
                     /* if user wants to quit a chatroom */
                     case MULTICAST_QUIT:
-                        server_handle_multicast_quit_req(server);
+                        server_handle_multicast_quit_req(server, &req_packet);
                         break;
 
                     /* if user wants to send a message in the chatroom */
                     case MULTICAST_SEND:
-                        server_handle_multicast_send_req(server);
+                        server_handle_multicast_send_req(server, &req_packet);
                         break;
 
                     /* if user wants to send a file to another user */
                     case FILE_REQUEST:
-                        server_handle_file_req(server);
+                        server_handle_file_req(server, &req_packet);
                         break;
 
                     /* if user accept file transfer */
                     case FILE_ACCEPT:
-                        server_handle_file_accept_req(server);
+                        server_handle_file_accept_res(server, &req_packet);
                         break;
 
                     /* if user rejects file transfer */
                     case FILE_REJECT:
-                        server_handle_file_reject_req(server);
+                        server_handle_file_reject_req(server, &req_packet);
                         break;
 
                     default:
