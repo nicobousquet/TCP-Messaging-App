@@ -89,7 +89,7 @@ void client_send_nickname_new_req(struct client *client, char *new_nickname) {
         return;
     }
 
-    struct packet req_packet = packet_init(client->nickname, NICKNAME_NEW, new_nickname, "\0");
+    struct packet req_packet = packet_init(client->nickname, NICKNAME_NEW, new_nickname, "", 0);
     packet_send(&req_packet, client->socket_fd);
 }
 
@@ -109,17 +109,17 @@ void client_help() {
 }
 
 void client_send_nickname_list_req(struct client *client) {
-    struct packet req_packet = packet_init(client->nickname, NICKNAME_LIST, "\0", "\0");
+    struct packet req_packet = packet_init(client->nickname, NICKNAME_LIST, "", "", 0);
     packet_send(&req_packet, client->socket_fd);
 }
 
 void client_send_nickname_infos_req(struct client *client, char *nickname) {
-    struct packet req_packet = packet_init(client->nickname, NICKNAME_INFOS, nickname, "\0");
+    struct packet req_packet = packet_init(client->nickname, NICKNAME_INFOS, nickname, "", 0);
     packet_send(&req_packet, client->socket_fd);
 }
 
 void client_send_broadcast_send_req(struct client *client, char *payload) {
-    struct packet req_packet = packet_init(client->nickname, BROADCAST_SEND, "\0", payload);
+    struct packet req_packet = packet_init(client->nickname, BROADCAST_SEND, "", payload, strlen(payload));
     packet_send(&req_packet, client->socket_fd);
 }
 
@@ -130,7 +130,7 @@ void client_send_unicast_send_req(struct client *client, char *nickname_dest, ch
         return;
     }
 
-    struct packet req_packet = packet_init(client->nickname, UNICAST_SEND, nickname_dest, payload);
+    struct packet req_packet = packet_init(client->nickname, UNICAST_SEND, nickname_dest, payload, strlen(payload));
     packet_send(&req_packet, client->socket_fd);
 }
 
@@ -151,23 +151,23 @@ void client_send_multicast_create_req(struct client *client, char *name_channel)
         return;
     }
 
-    struct packet req_packet = packet_init(client->nickname, MULTICAST_CREATE, name_channel, "\0");
+    struct packet req_packet = packet_init(client->nickname, MULTICAST_CREATE, name_channel, "", 0);
     packet_send(&req_packet, client->socket_fd);
 }
 
 void client_send_multicast_list_req(struct client *client) {
-    struct packet req_packet = packet_init(client->nickname, MULTICAST_LIST, "\0", "\0");
+    struct packet req_packet = packet_init(client->nickname, MULTICAST_LIST, "", "", 0);
     packet_send(&req_packet, client->socket_fd);
 }
 
 void client_send_multicast_join_req(struct client *client, char *chatroom) {
-    struct packet req_packet = packet_init(client->nickname, MULTICAST_JOIN, chatroom, "\0");
+    struct packet req_packet = packet_init(client->nickname, MULTICAST_JOIN, chatroom, "", 0);
     packet_send(&req_packet, client->socket_fd);
 }
 
 void client_send_multicast_quit_req(struct client *client, char *name_channel) {
     /* if channel name exists, quitting the channel */
-    struct packet req_packet = packet_init(client->nickname, MULTICAST_QUIT, name_channel, "\0");
+    struct packet req_packet = packet_init(client->nickname, MULTICAST_QUIT, name_channel, "", 0);
     packet_send(&req_packet, client->socket_fd);
 }
 
@@ -201,7 +201,7 @@ void client_send_file_req(struct client *client, char *nickname_dest, char *file
     /* writing only name of file to send and not the whole path into the payload */
     extract_filename(tmp, file);
 
-    struct packet req_packet = packet_init(client->nickname, FILE_REQUEST, nickname_dest, file);
+    struct packet req_packet = packet_init(client->nickname, FILE_REQUEST, nickname_dest, file, strlen(file));
     packet_send(&req_packet, client->socket_fd);
 
     /* Sending structure and payload */
@@ -214,10 +214,10 @@ void client_send_multicast_send_req(struct client *client, char *sentence, char 
 
         sprintf(payload, "%s %s", first_word, sentence);
 
-        struct packet req_packet = packet_init(client->nickname, MULTICAST_SEND, "\0", payload);
+        struct packet req_packet = packet_init(client->nickname, MULTICAST_SEND, "", payload, strlen(payload));
         packet_send(&req_packet, client->socket_fd);
     } else {
-        struct packet req_packet = packet_init(client->nickname, MULTICAST_SEND, "\0", first_word);
+        struct packet req_packet = packet_init(client->nickname, MULTICAST_SEND, "", first_word, strlen(first_word));
         packet_send(&req_packet, client->socket_fd);
     }
 }
@@ -239,7 +239,7 @@ static void file_accept_res(struct client *client, char *file_sender) {
     sprintf(payload, "%s:%hu", peer_dest->ip_addr, peer_dest->port_num);
 
     /* sending ip address and port for the client to connect */
-    struct packet res_packet = packet_init(client->nickname, FILE_ACCEPT, file_sender, payload);
+    struct packet res_packet = packet_init(client->nickname, FILE_ACCEPT, file_sender, payload, strlen(payload));
     packet_send(&res_packet, client->socket_fd);
 
     struct sockaddr sockaddr;
@@ -277,7 +277,7 @@ static void file_accept_res(struct client *client, char *file_sender) {
 static void file_reject_res(struct client *client, char *file_sender) {
     memset(client->file_to_send, 0, NICK_LEN);
 
-    struct packet res_packet = packet_init(client->nickname, FILE_REJECT, file_sender, "\0");
+    struct packet res_packet = packet_init(client->nickname, FILE_REJECT, file_sender, "", 0);
     packet_send(&res_packet, client->socket_fd);
 
     printf("You rejected the file transfer\n");
@@ -328,7 +328,7 @@ void client_handle_file_accept_res(struct client *client, struct packet *res_pac
     if (!peer_send_file(peer_src, client->file_to_send)) {
         printf("Invalid filename\n");
 
-        struct packet packet = packet_init(peer_src->nickname, FILENAME, "", "");
+        struct packet packet = packet_init(peer_src->nickname, FILENAME, "", "", 0);
         packet_send(&packet, peer_src->socket_fd);
 
         close(peer_src->socket_fd);

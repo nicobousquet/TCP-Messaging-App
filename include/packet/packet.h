@@ -9,9 +9,9 @@ struct packet {
     char payload[MSG_LEN];
 };
 
-struct packet packet_init(char *from, enum messageType type, char *infos, char *payload);
+struct packet packet_init(char *from, enum messageType type, char *infos, char *payload, unsigned long payload_length);
 
-void packet_set(struct packet *packet, char *from, enum messageType type, char *infos, char *payload);
+void packet_set(struct packet *packet, char *from, enum messageType type, char *infos, char *payload, unsigned long payload_length);
 
 void packet_send(struct packet *packet, int fd_dest);
 

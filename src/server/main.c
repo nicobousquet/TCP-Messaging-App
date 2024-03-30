@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
                 time(&ltime);
 
                 if (server->num_users < NUM_MAX_USERS) {
-                    struct user_node *user = user_node_init(socket_fd, inet_ntoa(sockaddrInPtr->sin_addr), ntohs(sockaddrInPtr->sin_port), "\0", asctime(localtime(&ltime)));
+                    struct user_node *user = user_node_init(socket_fd, inet_ntoa(sockaddrInPtr->sin_addr), ntohs(sockaddrInPtr->sin_port), "", asctime(localtime(&ltime)));
                     printf("Client (%s:%hu) connected on socket %i.\n", user->ip_addr, user->port_num, user->socket_fd);
                     user_node_add(&server->linked_list_users, user);
                     server->num_users++;
@@ -101,11 +101,13 @@ int main(int argc, char *argv[]) {
                         }
                     }
 
-                    struct packet res_packet = packet_init("SERVER", DEFAULT, "\0", "Please, login with /nick <your nickname>");
+                    char *payload = "Please, login with /nick <your nickname>";
+                    struct packet res_packet = packet_init("SERVER", DEFAULT, "", payload, strlen(payload));
                     packet_send(&res_packet, socket_fd);
 
                 } else {
-                    struct packet res_packet = packet_init("SERVER", DEFAULT, "\0", "Server at capacity! Cannot accept more connections :(");
+                    char *payload = "Server at capacity! Cannot accept more connections :(";
+                    struct packet res_packet = packet_init("SERVER", DEFAULT, "", payload, strlen(payload));
                     packet_send(&res_packet, socket_fd);
                 }
 
@@ -157,7 +159,8 @@ int main(int argc, char *argv[]) {
                 printf("payload: %s\n", req_packet.payload);
 
                 if (!server->current_user->is_logged_in && req_packet.header.type != NICKNAME_NEW) {
-                    struct packet res_packet = packet_init("SERVER", DEFAULT, "\0", "Please, login with /nick <your nickname>");
+                    char *payload = "Please, login with /nick <your nickname>";
+                    struct packet res_packet = packet_init("SERVER", DEFAULT, "", payload, strlen(payload));
                     packet_send(&res_packet, server->current_user->socket_fd);
 
                     break;

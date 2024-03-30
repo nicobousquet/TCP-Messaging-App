@@ -109,7 +109,7 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
 
         offset += ret;
 
-        struct packet res_packet = packet_init(peer_dest->nickname, FILE_ACK, "\0", "\0");
+        struct packet res_packet = packet_init(peer_dest->nickname, FILE_ACK, "", "", 0);
         packet_send(&res_packet, peer_dest->socket_fd);
 
         /* progress bar to show the advancement of downloading */
@@ -209,7 +209,7 @@ int peer_send_file(struct peer *peer_src, char *file_to_send) {
     sprintf(payload, "%lu", size);
 
     /* sending the size of the file to be sent */
-    struct packet packet = packet_init(peer_src->nickname, FILE_SEND, "\0", payload);
+    struct packet packet = packet_init(peer_src->nickname, FILE_SEND, "", payload, strlen(payload));
     packet_send(&packet, peer_src->socket_fd);
 
 
