@@ -104,7 +104,7 @@ void server_handle_nickname_new_req(struct server *server, struct packet *req_pa
     for (struct user_node *user = server->linked_list_users; user != NULL; user = user->next) {
         /* looking if nickname used by another user */
         if (strcmp(user->nickname, req_packet->header.infos) == 0) {
-            char *payload = "Nickname used by another user";
+            char payload[] = "Nickname used by another user";
             struct packet res_packet = packet_init("SERVER", DEFAULT, req_packet->header.infos, payload, strlen(payload));
             packet_send(&res_packet, server->current_user->socket_fd);
 
@@ -154,7 +154,7 @@ void server_handle_nickname_infos_req(struct server *server, struct packet *req_
 
     /* if user does not exist */
     if (dest_user == NULL) {
-        char *payload = "Unknown user";
+        char payload[] = "Unknown user";
         struct packet res_packet = packet_init("SERVER", req_packet->header.type, req_packet->header.infos, payload, strlen(payload));
         packet_send(&res_packet, server->current_user->socket_fd);
     } else { /* if user exists */
@@ -189,7 +189,7 @@ void server_handle_unicast_send_req(struct server *server, struct packet *req_pa
     if (dest_user != NULL) {
 
         if (dest_user == server->current_user) {
-            char *payload = "You cannot send a message to yourself";
+            char payload[] = "You cannot send a message to yourself";
             struct packet res_packet = packet_init("SERVER", DEFAULT, req_packet->header.infos, payload, strlen(payload));
             packet_send(&res_packet, dest_user->socket_fd);
         } else {
@@ -219,7 +219,7 @@ void server_handle_multicast_create_req(struct server *server, struct packet *re
             if (server->list_chatrooms[j] != NULL) {
                 /* if chatroom name exists yet */
                 if (strcmp(server->list_chatrooms[j]->name, req_packet->header.infos) == 0) {
-                    char *payload = "Chat room name used by other users, please choose a new chatroom name";
+                    char payload[] = "Chat room name used by other users, please choose a new chatroom name";
                     struct packet res_packet = packet_init("SERVER", req_packet->header.type, req_packet->header.infos, payload, strlen(payload));
                     packet_send(&res_packet, server->current_user->socket_fd);
 

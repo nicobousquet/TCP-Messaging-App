@@ -101,12 +101,12 @@ int main(int argc, char *argv[]) {
                         }
                     }
 
-                    char *payload = "Please, login with /nick <your nickname>";
+                    char payload[] = "Please, login with /nick <your nickname>";
                     struct packet res_packet = packet_init("SERVER", DEFAULT, "", payload, strlen(payload));
                     packet_send(&res_packet, socket_fd);
 
                 } else {
-                    char *payload = "Server at capacity! Cannot accept more connections :(";
+                    char payload[] = "Server at capacity! Cannot accept more connections :(";
                     struct packet res_packet = packet_init("SERVER", DEFAULT, "", payload, strlen(payload));
                     packet_send(&res_packet, socket_fd);
                 }
@@ -159,7 +159,7 @@ int main(int argc, char *argv[]) {
                 printf("payload: %s\n", req_packet.payload);
 
                 if (!server->current_user->is_logged_in && req_packet.header.type != NICKNAME_NEW) {
-                    char *payload = "Please, login with /nick <your nickname>";
+                    char payload[] = "Please, login with /nick <your nickname>";
                     struct packet res_packet = packet_init("SERVER", DEFAULT, "", payload, strlen(payload));
                     packet_send(&res_packet, server->current_user->socket_fd);
 
