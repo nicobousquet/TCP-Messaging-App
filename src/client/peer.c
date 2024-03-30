@@ -87,7 +87,7 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
     sprintf(filename_dest, "inbox/%s", file_to_receive);
 
     /* opening the file */
-    int fd_new_file = open(filename_dest, O_RDWR | O_CREAT | O_APPEND, S_IRWXU);
+    int fd_new_file = open(filename_dest, O_RDWR | O_CREAT | O_APPEND | O_TRUNC, S_IRWXU);
 
     if (fd_new_file == -1) {
         perror("creating file");
@@ -95,7 +95,7 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
     }
 
     long size = strtol(rec_packet.payload, NULL, 10);
-    long ret = 0, offset = 0;
+    ssize_t ret = 0, offset = 0;
 
     /* while we did not receive all the data of the file */
     while (offset != size) {
@@ -219,7 +219,7 @@ int peer_send_file(struct peer *peer_src, char *file_to_send) {
     while (offset != size) {
         /* putting frame of 1023 Bytes in payload */
         memset(payload, 0, MSG_LEN);
-        long ret = read(fileFd, payload, MSG_LEN);
+        ssize_t ret = read(fileFd, payload, MSG_LEN);
 
         if (-1 == ret) {
             perror("Reading from client socket");
@@ -232,11 +232,7 @@ int peer_send_file(struct peer *peer_src, char *file_to_send) {
             break;
         }
 
-        strcpy(packet.header.from, peer_src->nickname);
-        memcpy(packet.payload, payload, ret);
-        packet.header.len_payload = ret;
-        packet.header.type = FILE_SEND;
-
+        packet_set(&packet, peer_src->nickname, FILE_SEND, "", payload, ret);
         packet_send(&packet, peer_src->socket_fd);
 
         /* waiting data to be read by dest user in the socket file*/
