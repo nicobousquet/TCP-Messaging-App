@@ -172,62 +172,62 @@ int main(int argc, char *argv[]) {
                         server_handle_nickname_new_req(server, &req_packet);
                         break;
 
-                    /* if user wants to see the list of other connected users */
+                        /* if user wants to see the list of other connected users */
                     case NICKNAME_LIST:
                         server_handle_nickname_list_req(server, &req_packet);
                         break;
 
-                    /* if user wants to know the ip address, remote port number and connection date of another user */
+                        /* if user wants to know the ip address, remote port number and connection date of another user */
                     case NICKNAME_INFOS:
                         server_handle_nickname_infos_req(server, &req_packet);
                         break;
 
-                    /* if user wants to send a message to all the users */
+                        /* if user wants to send a message to all the users */
                     case BROADCAST_SEND:
                         server_handle_broadcast_send_req(server, &req_packet);
                         break;
 
-                    /* if user wants to send a message to another specific user */
+                        /* if user wants to send a message to another specific user */
                     case UNICAST_SEND:
                         server_handle_unicast_send_req(server, &req_packet);
                         break;
 
-                    /* if user wants to create a chatroom */
+                        /* if user wants to create a chatroom */
                     case MULTICAST_CREATE:
                         server_handle_multicast_create_req(server, &req_packet);
                         break;
 
-                    /* if user wants to have the list of all the chatrooms created */
+                        /* if user wants to have the list of all the chatrooms created */
                     case MULTICAST_LIST:
                         server_handle_multicast_list_req(server, &req_packet);
                         break;
 
-                    /* if user wants to join a chatroom */
+                        /* if user wants to join a chatroom */
                     case MULTICAST_JOIN:
                         server_handle_multicast_join_req(server, &req_packet);
                         break;
 
-                    /* if user wants to quit a chatroom */
+                        /* if user wants to quit a chatroom */
                     case MULTICAST_QUIT:
                         server_handle_multicast_quit_req(server, &req_packet);
                         break;
 
-                    /* if user wants to send a message in the chatroom */
+                        /* if user wants to send a message in the chatroom */
                     case MULTICAST_SEND:
                         server_handle_multicast_send_req(server, &req_packet);
                         break;
 
-                    /* if user wants to send a file to another user */
+                        /* if user wants to send a file to another user */
                     case FILE_REQUEST:
                         server_handle_file_req(server, &req_packet);
                         break;
 
-                    /* if user accept file transfer */
+                        /* if user accept file transfer */
                     case FILE_ACCEPT:
                         server_handle_file_accept_res(server, &req_packet);
                         break;
 
-                    /* if user rejects file transfer */
+                        /* if user rejects file transfer */
                     case FILE_REJECT:
                         server_handle_file_reject_req(server, &req_packet);
                         break;

@@ -112,7 +112,7 @@ int main(int argc, char *argv[]) {
 
                 pollfds[i].revents = 0;
             }
-            /* if data comes from the server */
+                /* if data comes from the server */
             else if (pollfds[i].fd != STDIN_FILENO && pollfds[i].revents & POLLIN) {
                 /* Receiving structure */
                 struct packet res_packet;
@@ -133,12 +133,12 @@ int main(int argc, char *argv[]) {
                         pollfds[i].revents = 0;
                         break;
 
-                    /* if receiving a file request */
+                        /* if receiving a file request */
                     case FILE_REQUEST:
                         client_handle_file_request_res(client, &res_packet);
                         break;
 
-                    /* if receiving a file accept */
+                        /* if receiving a file accept */
                     case FILE_ACCEPT:
                         client_handle_file_accept_res(client, &res_packet);
                         break;
