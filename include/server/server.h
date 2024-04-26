@@ -10,12 +10,12 @@ struct server {
     u_short port_num;
     struct chatroom *list_chatrooms[NUM_MAX_CHATROOMS];
     int num_chatrooms; /* number of chatrooms not empty */
-    struct user_node *linked_list_users;
+    struct user_node *user_head;
     int num_users;
     struct user_node *current_user;
 };
 
-struct server *server_init(char *port);
+struct server server_init(char *port);
 
 void server_disconnect_user(struct server *server, struct user_node *user_to_disconnect);
 

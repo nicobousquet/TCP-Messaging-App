@@ -49,8 +49,6 @@ void client_handle_file_accept_res(struct client *client, struct packet *res_pac
 
 void client_disconnect_from_server(struct pollfd *pollfds);
 
-struct client *client_init(char *hostname, char *port);
-
-void client_free(struct client *client);
+struct client client_init(char *hostname, char *port);
 
 #endif //CLIENT_H

@@ -6,9 +6,9 @@
 #include <unistd.h>
 #include <netdb.h>
 
-struct server *server_init(char *port) {
-    struct server *server = malloc(sizeof(struct server));
-    memset(server, 0, sizeof(struct server));
+struct server server_init(char *port) {
+    struct server server;
+    memset(&server, 0, sizeof(struct server));
 
     struct addrinfo hints, *result, *rp;
     memset(&hints, 0, sizeof(struct addrinfo));
@@ -21,33 +21,32 @@ struct server *server_init(char *port) {
     }
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
-        server->socket_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        server.socket_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 
-        if (server->socket_fd == -1) {
+        if (server.socket_fd == -1) {
             continue;
         }
 
-        if (bind(server->socket_fd, rp->ai_addr, rp->ai_addrlen) == 0) {
+        if (bind(server.socket_fd, rp->ai_addr, rp->ai_addrlen) == 0) {
             /* getting ip address  and port*/
             struct sockaddr_in my_addr;
             socklen_t len = sizeof(my_addr);
-            getsockname(server->socket_fd, (struct sockaddr *) &my_addr, &len);
-            inet_ntop(AF_INET, &my_addr.sin_addr, server->ip_addr, INET_ADDRSTRLEN);
-            server->port_num = ntohs(my_addr.sin_port);
+            getsockname(server.socket_fd, (struct sockaddr *) &my_addr, &len);
+            inet_ntop(AF_INET, &my_addr.sin_addr, server.ip_addr, INET_ADDRSTRLEN);
+            server.port_num = ntohs(my_addr.sin_port);
             freeaddrinfo(result);
 
-            if ((listen(server->socket_fd, SOMAXCONN)) != 0) {
-                free(server);
+            if ((listen(server.socket_fd, SOMAXCONN)) != 0) {
                 perror("listen()");
                 exit(EXIT_FAILURE);
             }
 
-            printf("Listening on %s:%hu\n", server->ip_addr, server->port_num);
+            printf("Listening on %s:%hu\n", server.ip_addr, server.port_num);
 
             return server;
         }
 
-        close(server->socket_fd);
+        close(server.socket_fd);
     }
 
     perror("bind()");
@@ -84,13 +83,13 @@ void server_disconnect_user(struct server *server, struct user_node *user_to_dis
     }
 
     /* Close socket and set struct pollfd back to default */
-    user_node_remove(&server->linked_list_users, user_to_disconnect);
+    user_node_remove(&server->user_head, user_to_disconnect);
     server->num_users--;
 }
 
 /* getting user by its name */
 struct user_node *server_get_user(struct server *server, char *nickname_user) {
-    for (struct user_node *current = server->linked_list_users; current != NULL; current = current->next) {
+    for (struct user_node *current = server->user_head; current != NULL; current = current->next) {
         if (strcmp(current->nickname, nickname_user) == 0) {
             return current;
         }
@@ -101,7 +100,7 @@ struct user_node *server_get_user(struct server *server, char *nickname_user) {
 
 void server_handle_nickname_new_req(struct server *server, struct packet *req_packet) {
 
-    for (struct user_node *user = server->linked_list_users; user != NULL; user = user->next) {
+    for (struct user_node *user = server->user_head; user != NULL; user = user->next) {
         /* looking if nickname used by another user */
         if (strcmp(user->nickname, req_packet->header.infos) == 0) {
             char payload[] = "Nickname used by another user";
@@ -138,7 +137,7 @@ void server_handle_nickname_list_req(struct server *server, struct packet *req_p
     char payload[MSG_LEN];
     strcpy(payload, "Online users are:\n");
 
-    for (struct user_node *user = server->linked_list_users; user != NULL; user = user->next) {
+    for (struct user_node *user = server->user_head; user != NULL; user = user->next) {
         sprintf(payload + strlen(payload), "- %s\n", user->nickname);
     }
 
@@ -168,7 +167,7 @@ void server_handle_nickname_infos_req(struct server *server, struct packet *req_
 
 void server_handle_broadcast_send_req(struct server *server, struct packet *req_packet) {
 
-    for (struct user_node *dest_user = server->linked_list_users; dest_user != NULL; dest_user = dest_user->next) {
+    for (struct user_node *dest_user = server->user_head; dest_user != NULL; dest_user = dest_user->next) {
         if (strcmp(dest_user->nickname, server->current_user->nickname) == 0) {
             struct packet res_packet = packet_init("me@all", req_packet->header.type, req_packet->header.infos, req_packet->payload, strlen(req_packet->payload));
             packet_send(&res_packet, server->current_user->socket_fd);

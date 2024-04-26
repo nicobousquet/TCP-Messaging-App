@@ -4,6 +4,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+struct packet packet_init(char *from, enum messageType type, char *infos, char *payload, unsigned long payload_length) {
+    struct packet packet;
+    memset(&packet, 0, sizeof(struct packet));
+    packet_set(&packet, from, type, infos, payload, payload_length);
+
+    return packet;
+}
+
 /* copying information in header */
 void packet_set(struct packet *packet, char *from, enum messageType type, char *infos, char *payload, unsigned long payload_length) {
     header_set(&packet->header, payload_length, from, type, infos);
@@ -12,14 +20,6 @@ void packet_set(struct packet *packet, char *from, enum messageType type, char *
         memset(packet->payload, 0, MSG_LEN);
         memcpy(packet->payload, payload, payload_length);
     }
-}
-
-struct packet packet_init(char *from, enum messageType type, char *infos, char *payload, unsigned long payload_length) {
-    struct packet packet;
-    memset(&packet, 0, sizeof(struct packet));
-    packet_set(&packet, from, type, infos, payload, payload_length);
-
-    return packet;
 }
 
 /* send structure and payload */

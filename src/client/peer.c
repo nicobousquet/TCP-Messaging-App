@@ -10,13 +10,9 @@
 #include <errno.h>
 #include <fcntl.h>
 
-void peer_free(struct peer *peer) {
-    free(peer);
-}
-
-struct peer *peer_init_peer_dest(char *listening_addr, char *listening_port, char *nickname_user) {
-    struct peer *peer_dest = malloc(sizeof(struct peer));
-    memset(peer_dest, 0, sizeof(struct peer));
+struct peer peer_init_peer_dest(char *listening_addr, char *listening_port, char *nickname_user) {
+    struct peer peer_dest;
+    memset(&peer_dest, 0, sizeof(struct peer));
     struct addrinfo hints, *result, *rp;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_socktype = SOCK_STREAM;
@@ -28,33 +24,33 @@ struct peer *peer_init_peer_dest(char *listening_addr, char *listening_port, cha
     }
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
-        peer_dest->socket_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        peer_dest.socket_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 
-        if (peer_dest->socket_fd == -1) {
+        if (peer_dest.socket_fd == -1) {
             continue;
         }
 
-        if (bind(peer_dest->socket_fd, rp->ai_addr, rp->ai_addrlen) == 0) {
+        if (bind(peer_dest.socket_fd, rp->ai_addr, rp->ai_addrlen) == 0) {
             /* getting ip address  and port*/
             struct sockaddr_in my_addr;
             socklen_t len = sizeof(my_addr);
-            getsockname(peer_dest->socket_fd, (struct sockaddr *) &my_addr, &len);
-            inet_ntop(AF_INET, &my_addr.sin_addr, peer_dest->ip_addr, INET_ADDRSTRLEN);
-            peer_dest->port_num = ntohs(my_addr.sin_port);
-            strcpy(peer_dest->nickname, nickname_user);
+            getsockname(peer_dest.socket_fd, (struct sockaddr *) &my_addr, &len);
+            inet_ntop(AF_INET, &my_addr.sin_addr, peer_dest.ip_addr, INET_ADDRSTRLEN);
+            peer_dest.port_num = ntohs(my_addr.sin_port);
+            strcpy(peer_dest.nickname, nickname_user);
             freeaddrinfo(result);
 
-            if ((listen(peer_dest->socket_fd, SOMAXCONN)) != 0) {
+            if ((listen(peer_dest.socket_fd, SOMAXCONN)) != 0) {
                 perror("listen()\n");
                 exit(EXIT_FAILURE);
             }
 
-            printf("Listening on %s:%hu\n", peer_dest->ip_addr, peer_dest->port_num);
+            printf("Listening on %s:%hu\n", peer_dest.ip_addr, peer_dest.port_num);
 
             return peer_dest;
         }
 
-        close(peer_dest->socket_fd);
+        close(peer_dest.socket_fd);
     }
 
     perror("bind()");
@@ -133,9 +129,9 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
     return 1;
 }
 
-struct peer *peer_init_peer_src(char *hostname, char *port, char *nickname_user) {
-    struct peer *peer_src = malloc(sizeof(struct peer));
-    memset(peer_src, 0, sizeof(struct peer));
+struct peer peer_init_peer_src(char *hostname, char *port, char *nickname_user) {
+    struct peer peer_src;
+    memset(&peer_src, 0, sizeof(struct peer));
     struct addrinfo hints, *result, *rp;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_socktype = SOCK_STREAM;
@@ -146,25 +142,25 @@ struct peer *peer_init_peer_src(char *hostname, char *port, char *nickname_user)
     }
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
-        peer_src->socket_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        peer_src.socket_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 
-        if (peer_src->socket_fd == -1) {
+        if (peer_src.socket_fd == -1) {
             continue;
         }
 
-        if (connect(peer_src->socket_fd, rp->ai_addr, rp->ai_addrlen) != -1) {
+        if (connect(peer_src.socket_fd, rp->ai_addr, rp->ai_addrlen) != -1) {
             /* getting ip address and port of connection */
             struct sockaddr_in *sockaddr_in_ptr = (struct sockaddr_in *) rp->ai_addr;
             socklen_t len = sizeof(struct sockaddr_in);
-            getsockname(peer_src->socket_fd, (struct sockaddr *) sockaddr_in_ptr, &len);
-            peer_src->port_num = ntohs(sockaddr_in_ptr->sin_port);
-            strcpy(peer_src->ip_addr, inet_ntoa(sockaddr_in_ptr->sin_addr));
-            strcpy(peer_src->nickname, nickname_user);
-            printf("You (%s:%hu) are now connected to %s:%s\n", peer_src->ip_addr, peer_src->port_num, hostname, port);
+            getsockname(peer_src.socket_fd, (struct sockaddr *) sockaddr_in_ptr, &len);
+            peer_src.port_num = ntohs(sockaddr_in_ptr->sin_port);
+            strcpy(peer_src.ip_addr, inet_ntoa(sockaddr_in_ptr->sin_addr));
+            strcpy(peer_src.nickname, nickname_user);
+            printf("You (%s:%hu) are now connected to %s:%s\n", peer_src.ip_addr, peer_src.port_num, hostname, port);
 
             break;
         }
-        close(peer_src->socket_fd);
+        close(peer_src.socket_fd);
     }
 
     if (rp == NULL) {
