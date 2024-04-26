@@ -13,16 +13,13 @@ struct user_node {
     char nickname[NICK_LEN];
     int is_logged_in;
     char date[INFOS_LEN]; /* date of connection */
-    int is_in_chatroom; /* 0 if user is not in a chatroom, else 1 */
-    struct user_node *next; /* next user */
+    int is_in_chatroom; /* 0 if user is not in a chatroom_node, else 1 */
+    struct user_node *next_in_server; /* next_in_server user */
+    struct user_node *next_in_chatroom;
 };
 
 struct user_node *user_node_init(int socket_fd, char *ip_addr, u_short port_num, char *nickname, char *date);
 
 void user_node_free(struct user_node *user_node);
-
-void user_node_add(struct user_node **linked_list_users, struct user_node *new_user_node);
-
-void user_node_remove(struct user_node **linked_list_users, struct user_node *user_to_remove);
 
 #endif //USER_NODE_H

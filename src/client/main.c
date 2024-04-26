@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
                 struct packet res_packet;
 
                 if (packet_rec(&res_packet, client.socket_fd) <= 0) {
-                    printf("Server has crashed\n");
+                    printf("Connection lost with the server\n");
                     client_disconnect_from_server(pollfds);
                     exit(EXIT_FAILURE);
                 }

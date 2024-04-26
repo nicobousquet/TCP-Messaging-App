@@ -78,18 +78,19 @@ int main(int argc, char *argv[]) {
                     perror("Accept");
                 }
 
-                /* getting ip address and port number of the new connection */
-                getpeername(socket_fd, &clientAddr, &size);
-                struct sockaddr_in *sockaddrInPtr = (struct sockaddr_in *) &clientAddr;
-
-                /* adding a new user */
-                time_t ltime;
-                time(&ltime);
-
                 if (server.num_users < NUM_MAX_USERS) {
+
+                    /* getting ip address and port number of the new connection */
+                    getpeername(socket_fd, &clientAddr, &size);
+                    struct sockaddr_in *sockaddrInPtr = (struct sockaddr_in *) &clientAddr;
+
+                    /* adding a new user */
+                    time_t ltime;
+                    time(&ltime);
+
                     struct user_node *user = user_node_init(socket_fd, inet_ntoa(sockaddrInPtr->sin_addr), ntohs(sockaddrInPtr->sin_port), "", asctime(localtime(&ltime)));
                     printf("Client (%s:%hu) connected on socket %i.\n", user->ip_addr, user->port_num, user->socket_fd);
-                    user_node_add(&server.user_head, user);
+                    server_add_user_node(&server, user);
                     server.num_users++;
 
                     /* store new file descriptor in available slot in the array of struct pollfd set .events to POLLIN */
@@ -109,6 +110,8 @@ int main(int argc, char *argv[]) {
                     char payload[] = "Server at capacity! Cannot accept more connections :(";
                     struct packet res_packet = packet_init("SERVER", DEFAULT, "", payload, strlen(payload));
                     packet_send(&res_packet, socket_fd);
+
+                    close(socket_fd);
                 }
 
                 /* Set .revents of listening socket back to default */
@@ -117,7 +120,7 @@ int main(int argc, char *argv[]) {
                 /* getting the user which is doing the request */
                 struct user_node *current_user = NULL;
 
-                for (current_user = server.user_head; current_user != NULL; current_user = current_user->next) {
+                for (current_user = server.user_head; current_user != NULL; current_user = current_user->next_in_server) {
                     if (current_user->socket_fd == pollfds[i].fd) {
                         break;
                     }
@@ -136,7 +139,7 @@ int main(int argc, char *argv[]) {
                 /* getting the user which is doing the request */
                 struct user_node *current_user = NULL;
 
-                for (current_user = server.user_head; current_user != NULL; current_user = current_user->next) {
+                for (current_user = server.user_head; current_user != NULL; current_user = current_user->next_in_server) {
                     if (current_user->socket_fd == pollfds[i].fd) {
                         break;
                     }
@@ -192,7 +195,7 @@ int main(int argc, char *argv[]) {
                         server_handle_unicast_send_req(&server, &req_packet);
                         break;
 
-                        /* if user wants to create a chatroom */
+                        /* if user wants to create a chatroom_node */
                     case MULTICAST_CREATE:
                         server_handle_multicast_create_req(&server, &req_packet);
                         break;
@@ -202,17 +205,17 @@ int main(int argc, char *argv[]) {
                         server_handle_multicast_list_req(&server, &req_packet);
                         break;
 
-                        /* if user wants to join a chatroom */
+                        /* if user wants to join a chatroom_node */
                     case MULTICAST_JOIN:
                         server_handle_multicast_join_req(&server, &req_packet);
                         break;
 
-                        /* if user wants to quit a chatroom */
+                        /* if user wants to quit a chatroom_node */
                     case MULTICAST_QUIT:
                         server_handle_multicast_quit_req(&server, &req_packet);
                         break;
 
-                        /* if user wants to send a message in the chatroom */
+                        /* if user wants to send a message in the chatroom_node */
                     case MULTICAST_SEND:
                         server_handle_multicast_send_req(&server, &req_packet);
                         break;

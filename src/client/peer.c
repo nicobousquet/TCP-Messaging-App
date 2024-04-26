@@ -12,7 +12,9 @@
 
 struct peer peer_init_peer_dest(char *listening_addr, char *listening_port, char *nickname_user) {
     struct peer peer_dest;
+
     memset(&peer_dest, 0, sizeof(struct peer));
+
     struct addrinfo hints, *result, *rp;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_socktype = SOCK_STREAM;
@@ -131,7 +133,9 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
 
 struct peer peer_init_peer_src(char *hostname, char *port, char *nickname_user) {
     struct peer peer_src;
+
     memset(&peer_src, 0, sizeof(struct peer));
+
     struct addrinfo hints, *result, *rp;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_socktype = SOCK_STREAM;
@@ -160,6 +164,7 @@ struct peer peer_init_peer_src(char *hostname, char *port, char *nickname_user) 
 
             break;
         }
+
         close(peer_src.socket_fd);
     }
 
