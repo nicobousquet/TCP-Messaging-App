@@ -2,6 +2,7 @@
 #define HEADER_H
 
 #include "../constants.h"
+#include <sys/socket.h>
 
 /* different types of messages */
 enum messageType {
@@ -22,13 +23,12 @@ enum messageType {
     FILE_REJECT,
     FILE_SEND,
     FILE_ACK,
-    FILENAME,
-    HELP
+    FILENAME
 };
 
 struct header {
     unsigned long len_payload; /* length of the payload */
-    char from[2 * NICK_LEN]; /* name of the sender */
+    char from[NICK_LEN]; /* name of the sender */
     enum messageType type; /* type of the message */
     char infos[INFOS_LEN]; /* additional infos on the message */
 };
@@ -36,5 +36,9 @@ struct header {
 struct header header_init(unsigned long len_payload, char *from, enum messageType type, char *infos);
 
 void header_set(struct header *header, unsigned long len_payload, char *from, enum messageType type, char *infos);
+
+void header_send(struct header *header, int socket_fd);
+
+ssize_t header_rec(struct header *header, int socket_fd);
 
 #endif //HEADER_H

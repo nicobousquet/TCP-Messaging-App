@@ -39,7 +39,7 @@ struct peer peer_init_peer_dest(char *listening_addr, char *listening_port, char
             getsockname(peer_dest.socket_fd, (struct sockaddr *) &my_addr, &len);
             inet_ntop(AF_INET, &my_addr.sin_addr, peer_dest.ip_addr, INET_ADDRSTRLEN);
             peer_dest.port_num = ntohs(my_addr.sin_port);
-            strcpy(peer_dest.nickname, nickname_user);
+            snprintf(peer_dest.nickname, NICK_LEN, "%s", nickname_user);
             freeaddrinfo(result);
 
             if ((listen(peer_dest.socket_fd, SOMAXCONN)) != 0) {
@@ -79,10 +79,10 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
         perror("mkdir:");
     }
 
-    char filename_dest[2 * NICK_LEN];
+    char filename_dest[FILENAME_LEN];
 
     /* creating the path of the received file */
-    sprintf(filename_dest, "inbox/%s", file_to_receive);
+    snprintf(filename_dest, FILENAME_LEN, "inbox/%s", file_to_receive);
 
     /* opening the file */
     int fd_new_file = open(filename_dest, O_RDWR | O_CREAT | O_APPEND | O_TRUNC, S_IRWXU);
@@ -103,6 +103,7 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
         /* writing received data in a new file */
         if (-1 == (ret = write(fd_new_file, rec_packet.payload, rec_packet.header.len_payload))) {
             perror("Writing in new file");
+            exit(EXIT_FAILURE);
         }
 
         offset += ret;
@@ -124,6 +125,11 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
 
         printf(" [%i%%]\n", progression);
         printf("\033[1A\33[2K\r");
+    }
+
+    if (close(fd_new_file) == -1) {
+        perror("Erreur lors de la fermeture du fichier");
+        exit(EXIT_FAILURE);
     }
 
     printf("File received successfully and saved in %s\n", filename_dest);
@@ -158,8 +164,8 @@ struct peer peer_init_peer_src(char *hostname, char *port, char *nickname_user) 
             socklen_t len = sizeof(struct sockaddr_in);
             getsockname(peer_src.socket_fd, (struct sockaddr *) sockaddr_in_ptr, &len);
             peer_src.port_num = ntohs(sockaddr_in_ptr->sin_port);
-            strcpy(peer_src.ip_addr, inet_ntoa(sockaddr_in_ptr->sin_addr));
-            strcpy(peer_src.nickname, nickname_user);
+            inet_ntop(AF_INET, &((struct sockaddr_in *) &sockaddr_in_ptr)->sin_addr, peer_src.ip_addr, INET_ADDRSTRLEN);
+            snprintf(peer_src.nickname, NICK_LEN, "%s", nickname_user);
             printf("You (%s:%hu) are now connected to %s:%s\n", peer_src.ip_addr, peer_src.port_num, hostname, port);
 
             break;
@@ -190,9 +196,9 @@ int peer_send_file(struct peer *peer_src, char *file_to_send) {
     }
 
     /* opening file to send */
-    int fileFd = open(file_to_send, O_RDONLY);
+    int file_fd = open(file_to_send, O_RDONLY);
 
-    if (fileFd == -1) {
+    if (file_fd == -1) {
 
         if (errno == ENOENT) {
             return 0;
@@ -207,7 +213,7 @@ int peer_send_file(struct peer *peer_src, char *file_to_send) {
 
     char payload[MSG_LEN];
     memset(payload, 0, MSG_LEN);
-    sprintf(payload, "%lu", size);
+    snprintf(payload, MSG_LEN, "%lu", size);
 
     /* sending the size of the file to be sent */
     struct packet packet = packet_init(peer_src->nickname, FILE_SEND, "", payload, strlen(payload));
@@ -220,7 +226,7 @@ int peer_send_file(struct peer *peer_src, char *file_to_send) {
     while (offset != size) {
         /* putting frame of 1023 Bytes in payload */
         memset(payload, 0, MSG_LEN);
-        ssize_t ret = read(fileFd, payload, MSG_LEN);
+        ssize_t ret = read(file_fd, payload, MSG_LEN);
 
         if (-1 == ret) {
             perror("Reading from client socket");
@@ -229,7 +235,7 @@ int peer_send_file(struct peer *peer_src, char *file_to_send) {
 
         if (0 == ret) {
             printf("Should close connection, read 0 bytes\n");
-            close(fileFd);
+            close(file_fd);
             break;
         }
 
@@ -260,6 +266,11 @@ int peer_send_file(struct peer *peer_src, char *file_to_send) {
 
         printf(" [%i%%]\n", progression);
         printf("\033[1A\33[2K\r");
+    }
+
+    if (close(file_fd) == -1) {
+        perror("Erreur lors de la fermeture du fichier");
+        exit(EXIT_FAILURE);
     }
 
     printf("File sent successfully and received successfully\n");

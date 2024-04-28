@@ -1,6 +1,7 @@
 #include "../../include/server/chatroom_node.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 void chatroom_node_add_user_node(struct chatroom_node *chatroom, struct user_node *to_add) {
     to_add->next_in_chatroom = chatroom->user_head;
@@ -32,7 +33,7 @@ struct chatroom_node *chatroom_init(char *name_chatroom, struct user_node *first
 
     memset(new_chatroom_node, 0, sizeof(struct chatroom_node));
 
-    strcpy(new_chatroom_node->name, name_chatroom);
+    snprintf(new_chatroom_node->name, CHATROOM_NAME_LEN, "%s", name_chatroom);
     chatroom_node_add_user_node(new_chatroom_node, first_user);
     first_user->is_in_chatroom = 1;
     new_chatroom_node->num_users = 1;

@@ -33,7 +33,7 @@ struct client client_init(char *hostname, char *port) {
             socklen_t len = sizeof(struct sockaddr_in);
             getsockname(client.socket_fd, (struct sockaddr *) sockaddr_in_ptr, &len);
             client.port_num = ntohs(sockaddr_in_ptr->sin_port);
-            strcpy(client.ip_addr, inet_ntoa(sockaddr_in_ptr->sin_addr));
+            inet_ntop(AF_INET, &sockaddr_in_ptr->sin_addr, client.ip_addr, INET_ADDRSTRLEN);
             break;
         }
 
@@ -74,7 +74,7 @@ void client_send_nickname_new_req(struct client *client, char *new_nickname) {
     /* checking length */
     unsigned long len_correct_nickname = strspn(new_nickname, "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890");
 
-    if (len_nickname > NICK_LEN) {
+    if (len_nickname > NICK_LEN - 1) {
         printf("Too long nickname\n");
         return;
     }
@@ -170,12 +170,12 @@ void client_send_multicast_quit_req(struct client *client, char *name_channel) {
 /* extracting name of file to send */
 static void extract_filename(char *tmp, char *sub_path) {
     tmp = strtok(tmp, "/");
-    strcpy(sub_path, tmp);
+    snprintf(sub_path, FILENAME_LEN, "%s", tmp);
 
     /* extracting the name of the file from the whole path */
     while ((tmp = strtok(NULL, "/")) != NULL) {
-        memset(sub_path, 0, NICK_LEN);
-        strcpy(sub_path, tmp);
+        memset(sub_path, 0, FILENAME_LEN);
+        snprintf(sub_path, FILENAME_LEN, "%s", tmp);
     }
 }
 
@@ -186,13 +186,13 @@ void client_send_file_req(struct client *client, char *nickname_dest, char *file
         return;
     }
 
-    strcpy(client->file_to_send, filename + 1);
+    snprintf(client->file_to_send, FILENAME_LEN, "%s", filename + 1);
     client->file_to_send[strlen(client->file_to_send) - 1] = '\0';
 
     /* extracting name of file to send from the path */
-    char tmp[MSG_LEN];
-    strcpy(tmp, client->file_to_send);
-    char file[MSG_LEN];
+    char tmp[FILENAME_LEN];
+    snprintf(tmp, FILENAME_LEN, "%s", client->file_to_send);
+    char file[FILENAME_LEN];
 
     /* writing only name of file to send and not the whole path into the payload */
     extract_filename(tmp, file);
@@ -208,7 +208,7 @@ void client_send_multicast_send_req(struct client *client, char *sentence, char 
     if (sentence != NULL) {
         char payload[MSG_LEN];
 
-        sprintf(payload, "%s %s", first_word, sentence);
+        snprintf(payload, MSG_LEN, "%s %s", first_word, sentence);
 
         struct packet req_packet = packet_init(client->nickname, MULTICAST_SEND, "", payload, strlen(payload));
         packet_send(&req_packet, client->socket_fd);
@@ -219,20 +219,17 @@ void client_send_multicast_send_req(struct client *client, char *sentence, char 
 }
 
 void client_handle_nickname_new_res(struct client *client, struct packet *res_packet) {
-    strcpy(client->nickname, res_packet->header.infos);
+    snprintf(client->nickname, NICK_LEN, "%s", res_packet->header.infos);
 }
 
 static void file_accept_res(struct client *client, char *file_sender) {
     printf("You accepted the file transfer\n");
 
-    /* letting the computer choosing a listening port */
-    char listening_port[INFOS_LEN] = "0";
-
     /* creating a listening socket */
-    struct peer peer_dest = peer_init_peer_dest(client->ip_addr, listening_port, client->nickname);
+    struct peer peer_dest = peer_init_peer_dest(client->ip_addr, "0", client->nickname);
 
     char payload[MSG_LEN];
-    sprintf(payload, "%s:%hu", peer_dest.ip_addr, peer_dest.port_num);
+    snprintf(payload, MSG_LEN, "%s:%hu", peer_dest.ip_addr, peer_dest.port_num);
 
     /* sending ip address and port for the client to connect */
     struct packet res_packet = packet_init(client->nickname, FILE_ACCEPT, file_sender, payload, strlen(payload));
@@ -248,8 +245,8 @@ static void file_accept_res(struct client *client, char *file_sender) {
     }
 
     getpeername(peer_dest.socket_fd, (struct sockaddr *) &sockaddr, &len);
-    char ip_addr_client[INFOS_LEN];
-    strcpy(ip_addr_client, inet_ntoa(((struct sockaddr_in *) &sockaddr)->sin_addr));
+    char ip_addr_client[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &((struct sockaddr_in *) &sockaddr)->sin_addr, ip_addr_client, INET_ADDRSTRLEN);
     u_short port_num_client = ntohs(((struct sockaddr_in *) &sockaddr)->sin_port);
     printf("%s (%s:%i) is now connected to you (%s:%hu)\n", file_sender, ip_addr_client, port_num_client, peer_dest.ip_addr, peer_dest.port_num);
 
@@ -269,7 +266,7 @@ static void file_accept_res(struct client *client, char *file_sender) {
 }
 
 static void file_reject_res(struct client *client, char *file_sender) {
-    memset(client->file_to_send, 0, NICK_LEN);
+    memset(client->file_to_send, 0, FILENAME_LEN);
 
     struct packet res_packet = packet_init(client->nickname, FILE_REJECT, file_sender, "", 0);
     packet_send(&res_packet, client->socket_fd);
@@ -278,19 +275,25 @@ static void file_reject_res(struct client *client, char *file_sender) {
 }
 
 void client_handle_file_request_res(struct client *client, struct packet *req_packet) {
-    strcpy(client->file_to_receive, req_packet->payload);
+    int len = snprintf(client->file_to_receive, FILENAME_LEN, "%s", req_packet->payload);
+
+    if (len >= FILENAME_LEN) {
+        printf("String truncated\n");
+    }
+
     printf("[%s]: %s wants to send you the file named \"%s\". Do you accept ? [Y/N]\n", req_packet->header.from, req_packet->header.infos, client->file_to_receive);
 
     /* loop waiting for user response for file request */
     while (1) {
-        int n = 0;
         char buffer[MSG_LEN];
         memset(buffer, 0, MSG_LEN);
 
-        while ((buffer[n++] = (char) getchar()) != '\n') {}
+        int n = 0;
+        char c;
 
-        /* removing \n at the end of the buffer */
-        buffer[strlen(buffer) - 1] = '\0';
+        while ((c = (char) getchar()) != '\n' && n != MSG_LEN) {
+            buffer[n++] = c;
+        }
 
         /* move to the beginning of previous line */
         printf("\033[1A\33[2K\r");

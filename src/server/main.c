@@ -27,8 +27,7 @@ char *msg_type_str[] = {
         "FILE_REJECT",
         "FILE_SEND",
         "FILE_ACK",
-        "FILENAME",
-        "HELP"
+        "FILENAME"
 };
 
 static void usage() {
@@ -170,7 +169,7 @@ int main(int argc, char *argv[]) {
                 }
 
                 switch (req_packet.header.type) {
-                    /* if user wants to change/create nickname */
+                        /* if user wants to change/create nickname */
                     case NICKNAME_NEW:
                         server_handle_nickname_new_req(&server, &req_packet);
                         break;

@@ -9,7 +9,7 @@ struct server {
     char ip_addr[INET_ADDRSTRLEN];
     u_short port_num;
     struct chatroom_node *chatroom_head;
-    int num_chatrooms; /* number of chatrooms not empty */
+    int num_chatrooms;
     struct user_node *user_head;
     int num_users;
     struct user_node *current_user;
@@ -31,7 +31,7 @@ struct chatroom_node *server_get_chatroom_by_user(struct chatroom_node *head, st
 
 struct chatroom_node *server_get_chatroom_by_name(struct chatroom_node *head, char *chatroom_name);
 
-struct user_node *server_get_current_user(struct server *server, char *nickname_user);
+struct user_node *server_get_user_by_name(struct server *server, char *nickname_user);
 
 void server_handle_file_reject_req(struct server *server, struct packet *req_packet);
 

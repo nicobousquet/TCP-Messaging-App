@@ -12,7 +12,7 @@ struct user_node {
     u_short port_num;
     char nickname[NICK_LEN];
     int is_logged_in;
-    char date[INFOS_LEN]; /* date of connection */
+    char date[DATE_LEN]; /* date of connection */
     int is_in_chatroom; /* 0 if user is not in a chatroom_node, else 1 */
     struct user_node *next_in_server; /* next_in_server user */
     struct user_node *next_in_chatroom;

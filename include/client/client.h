@@ -13,8 +13,8 @@ struct client {
     char ip_addr[INET_ADDRSTRLEN];
     u_short port_num;
     char nickname[NICK_LEN];
-    char file_to_send[NICK_LEN];
-    char file_to_receive[NICK_LEN];
+    char file_to_send[FILENAME_LEN];
+    char file_to_receive[FILENAME_LEN];
 };
 
 void client_send_nickname_new_req(struct client *client, char *new_nickname);

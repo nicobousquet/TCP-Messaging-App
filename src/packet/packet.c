@@ -23,15 +23,12 @@ void packet_set(struct packet *packet, char *from, enum messageType type, char *
 }
 
 /* send structure and payload */
-void packet_send(struct packet *packet, int fd_dest) {
-    if (send(fd_dest, &packet->header, sizeof(struct header), 0) <= 0) {
-        perror("packet_send");
-        exit(EXIT_FAILURE);
-    }
+void packet_send(struct packet *packet, int socket_fd) {
+    header_send(&packet->header, socket_fd);
 
     if (packet->header.len_payload != 0) {
 
-        if (send(fd_dest, packet->payload, packet->header.len_payload, 0) <= 0) {
+        if (send(socket_fd, packet->payload, packet->header.len_payload, 0) == -1) {
             perror("packet_send");
             exit(EXIT_FAILURE);
         }
@@ -42,17 +39,13 @@ ssize_t packet_rec(struct packet *packet, int socket_fd) {
 
     memset(packet, 0, sizeof(struct packet));
 
-    ssize_t ret = -1;
-
-    if ((ret = recv(socket_fd, &packet->header, sizeof(struct header), MSG_WAITALL)) <= 0) {
-        return ret;
-    }
+    ssize_t ret = header_rec(&packet->header, socket_fd);
 
     if (packet->header.len_payload != 0) {
         ssize_t ret2 = -1;
 
-        if ((ret2 = recv(socket_fd, packet->payload, packet->header.len_payload, MSG_WAITALL)) <= 0) {
-            perror("recv");
+        if ((ret2 = recv(socket_fd, packet->payload, packet->header.len_payload, MSG_WAITALL)) == -1) {
+            perror("packet_rec");
             exit(EXIT_FAILURE);
         }
 

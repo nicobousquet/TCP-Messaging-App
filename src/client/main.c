@@ -43,14 +43,16 @@ int main(int argc, char *argv[]) {
             /* if data comes from the keyboard */
             if (pollfds[i].fd == STDIN_FILENO && pollfds[i].revents & POLLIN) {
                 /* putting data into buffer */
-                int n = 0;
                 char buffer[MSG_LEN];
                 memset(buffer, 0, MSG_LEN);
 
-                while ((buffer[n++] = (char) getchar()) != '\n') {}
+                int n = 0;
+                char c;
 
-                /* removing \n at the end of the buffer */
-                buffer[strlen(buffer) - 1] = '\0';
+                while ((c = (char) getchar()) != '\n' && n != MSG_LEN) {
+                    buffer[n++] = c;
+                }
+
                 /* move to the beginning of previous line */
                 printf("\033[1A\33[2K\r");
                 fflush(stdout);
@@ -124,7 +126,7 @@ int main(int argc, char *argv[]) {
 
                 switch (res_packet.header.type) {
 
-                    /* changing nickname */
+                        /* changing nickname */
                     case NICKNAME_NEW:
                         client_handle_nickname_new_res(&client, &res_packet);
                         printf("[%s]: %s\n", res_packet.header.from, res_packet.payload);
@@ -134,11 +136,13 @@ int main(int argc, char *argv[]) {
                         /* if receiving a file request */
                     case FILE_REQUEST:
                         client_handle_file_request_res(&client, &res_packet);
+                        pollfds[i].revents = 0;
                         break;
 
                         /* if receiving a file accept */
                     case FILE_ACCEPT:
                         client_handle_file_accept_res(&client, &res_packet);
+                        pollfds[i].revents = 0;
                         break;
 
                     default:

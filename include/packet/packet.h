@@ -13,7 +13,7 @@ struct packet packet_init(char *from, enum messageType type, char *infos, char *
 
 void packet_set(struct packet *packet, char *from, enum messageType type, char *infos, char *payload, unsigned long payload_length);
 
-void packet_send(struct packet *packet, int fd_dest);
+void packet_send(struct packet *packet, int socket_fd);
 
 ssize_t packet_rec(struct packet *packet, int socket_fd);
 

@@ -1,6 +1,7 @@
 #include "../../include/server/user_node.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 struct user_node *user_node_init(int socket_fd, char *ip_addr, u_short port_num, char *nickname, char *date) {
     struct user_node *user = malloc(sizeof(struct user_node));
@@ -8,10 +9,10 @@ struct user_node *user_node_init(int socket_fd, char *ip_addr, u_short port_num,
     memset(user, 0, sizeof(struct user_node));
 
     user->socket_fd = socket_fd;
-    strcpy(user->ip_addr, ip_addr);
+    snprintf(user->ip_addr, INET_ADDRSTRLEN, "%s", ip_addr);
     user->port_num = port_num;
-    strcpy(user->nickname, nickname);
-    strcpy(user->date, date);
+    snprintf(user->nickname, NICK_LEN, "%s", nickname);
+    snprintf(user->date, DATE_LEN, "%s", date);
     user->is_in_chatroom = 0;
     user->is_logged_in = 0;
     user->next_in_server = NULL;

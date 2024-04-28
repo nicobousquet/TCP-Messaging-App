@@ -4,7 +4,7 @@
 #include "user_node.h"
 
 struct chatroom_node {
-    char name[NICK_LEN]; /* name of the chatroom_node */
+    char name[CHATROOM_NAME_LEN]; /* name of the chatroom_node */
     struct user_node *user_head; /* users who are in the chatroom_node */
     int num_users; /* number of users in the chatroom_node */
     struct chatroom_node *next;
