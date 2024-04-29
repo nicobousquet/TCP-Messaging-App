@@ -244,7 +244,6 @@ static void file_accept_res(struct client *client, char *file_sender) {
         perror("Accept");
     }
 
-    getpeername(peer_dest.socket_fd, (struct sockaddr *) &sockaddr, &len);
     char ip_addr_client[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &((struct sockaddr_in *) &sockaddr)->sin_addr, ip_addr_client, INET_ADDRSTRLEN);
     u_short port_num_client = ntohs(((struct sockaddr_in *) &sockaddr)->sin_port);

@@ -80,14 +80,13 @@ int main(int argc, char *argv[]) {
                 if (server.num_users < NUM_MAX_USERS) {
 
                     /* getting ip address and port number of the new connection */
-                    getpeername(socket_fd, &clientAddr, &size);
                     struct sockaddr_in *sockaddrInPtr = (struct sockaddr_in *) &clientAddr;
 
                     /* adding a new user */
                     time_t ltime;
                     time(&ltime);
 
-                    struct user_node *user = user_node_init(socket_fd, inet_ntoa(sockaddrInPtr->sin_addr), ntohs(sockaddrInPtr->sin_port), "", asctime(localtime(&ltime)));
+                    struct user_node *user = user_node_init(socket_fd, inet_ntoa(((struct sockaddr_in *) &clientAddr)->sin_addr), ntohs(sockaddrInPtr->sin_port), "", asctime(localtime(&ltime)));
                     printf("Client (%s:%hu) connected on socket %i.\n", user->ip_addr, user->port_num, user->socket_fd);
                     server_add_user_node(&server, user);
                     server.num_users++;
