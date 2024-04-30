@@ -176,7 +176,7 @@ void client_send_multicast_quit_req(struct client *client, char *name_channel) {
 }
 
 /* extracting name of file to send */
-static char *get_file_from_path(char *file, char *path) {
+static char *get_filename_from_path(char *file, char *path) {
     char *tmp = strtok(path, "/");
 
     /* extracting the name of the tmp from the whole path */
@@ -199,7 +199,7 @@ void client_send_file_req(struct client *client, char *nickname_dest, char *file
     snprintf(client->file_to_send, FILENAME_LEN, "%s", path);
 
     char file[FILENAME_LEN];
-    get_file_from_path(file, path);
+    get_filename_from_path(file, path);
 
     struct packet req_packet = packet_init(client->nickname, FILE_REQUEST, nickname_dest, file, strlen(file));
     packet_send(&req_packet, client->socket_fd);
