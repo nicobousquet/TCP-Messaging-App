@@ -176,7 +176,7 @@ void client_send_multicast_quit_req(struct client *client, char *name_channel) {
 }
 
 /* extracting name of file to send */
-static char *get_filename_from_path(char *file, char *path) {
+static void get_filename_from_path(char *file, char *path) {
     char *tmp = strtok(path, "/");
 
     /* extracting the name of the tmp from the whole path */
