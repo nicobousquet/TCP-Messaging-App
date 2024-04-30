@@ -8,45 +8,53 @@
 #include <unistd.h>
 
 /* Connecting to server socket */
-struct client client_init(char *hostname, char *port) {
+struct client client_init(char *server_ip_addr, char *server_port) {
     struct client client;
     memset(&client, 0, sizeof(struct client));
-    struct addrinfo hints, *result, *rp;
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_socktype = SOCK_STREAM;
 
-    if (getaddrinfo(hostname, port, &hints, &result) != 0) {
+    struct addrinfo hints, *res, *p;
+
+    memset(&hints, 0, sizeof(struct addrinfo));
+
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_family = AF_INET;
+
+    if (getaddrinfo(server_ip_addr, server_port, &hints, &res) != 0) {
         perror("getaddrinfo()");
         exit(EXIT_FAILURE);
     }
 
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
-        client.socket_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    for (p = res; p != NULL; p = p->ai_next) {
+        client.socket_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
 
         if (client.socket_fd == -1) {
             continue;
         }
 
-        if (connect(client.socket_fd, rp->ai_addr, rp->ai_addrlen) != -1) {
-            /* getting ip address and port of connection */
-            struct sockaddr_in *sockaddr_in_ptr = (struct sockaddr_in *) rp->ai_addr;
-            socklen_t len = sizeof(struct sockaddr_in);
-            getsockname(client.socket_fd, (struct sockaddr *) sockaddr_in_ptr, &len);
-            client.port_num = ntohs(sockaddr_in_ptr->sin_port);
-            inet_ntop(AF_INET, &sockaddr_in_ptr->sin_addr, client.ip_addr, INET_ADDRSTRLEN);
-            break;
+        if (connect(client.socket_fd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(client.socket_fd);
+            continue;
         }
 
-        close(client.socket_fd);
+        break;
     }
 
-    if (rp == NULL) {
-        perror("connect()");
+    if (p == NULL) {
+        perror("Impossible to connect to the server");
         exit(EXIT_FAILURE);
     }
 
-    freeaddrinfo(result);
-    printf("You (%s:%hu) are now connected to the server (%s:%s)\n", client.ip_addr, client.port_num, hostname, port);
+    freeaddrinfo(res);
+
+    /* getting ip address and server_port of connection */
+    struct sockaddr_in client_addr;
+    socklen_t len = sizeof(struct sockaddr_in);
+
+    getsockname(client.socket_fd, (struct sockaddr *) &client_addr, &len);
+    client.port_num = ntohs(client_addr.sin_port);
+    inet_ntop(AF_INET, &client_addr.sin_addr, client.ip_addr, INET_ADDRSTRLEN);
+
+    printf("You (%s:%hu) are now connected to the server (%s:%s)\n", client.ip_addr, client.port_num, server_ip_addr, server_port);
 
     return client;
 }
@@ -226,40 +234,42 @@ static void file_accept_res(struct client *client, char *file_sender) {
     printf("You accepted the file transfer\n");
 
     /* creating a listening socket */
-    struct peer peer_dest = peer_init_peer_dest(client->ip_addr, "0", client->nickname);
+    struct peer peer_receiver = peer_init_peer_receiver("0", client->nickname);
 
     char payload[MSG_LEN];
-    snprintf(payload, MSG_LEN, "%s:%hu", peer_dest.ip_addr, peer_dest.port_num);
+    snprintf(payload, MSG_LEN, "%s:%hu", client->ip_addr, peer_receiver.port_num);
 
     /* sending ip address and port for the client to connect */
     struct packet res_packet = packet_init(client->nickname, FILE_ACCEPT, file_sender, payload, strlen(payload));
     packet_send(&res_packet, client->socket_fd);
 
-    struct sockaddr sockaddr;
-    memset(&sockaddr, 0, sizeof(sockaddr));
-    socklen_t len = sizeof(sockaddr);
+    struct sockaddr_in peer_sender_addr;
+    memset(&peer_sender_addr, 0, sizeof(struct sockaddr_in));
+    socklen_t len = sizeof(struct sockaddr_in);
 
     /* accepting connection from client */
-    if ((peer_dest.socket_fd = accept(peer_dest.socket_fd, &sockaddr, &len)) == -1) {
+    if ((peer_receiver.socket_fd = accept(peer_receiver.socket_fd, (struct sockaddr *) &peer_sender_addr, &len)) == -1) {
         perror("Accept");
+        exit(EXIT_FAILURE);
     }
 
-    char ip_addr_client[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &((struct sockaddr_in *) &sockaddr)->sin_addr, ip_addr_client, INET_ADDRSTRLEN);
-    u_short port_num_client = ntohs(((struct sockaddr_in *) &sockaddr)->sin_port);
-    printf("%s (%s:%i) is now connected to you (%s:%hu)\n", file_sender, ip_addr_client, port_num_client, peer_dest.ip_addr, peer_dest.port_num);
+    char peer_sender_ip_addr[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &peer_sender_addr.sin_addr, peer_sender_ip_addr, INET_ADDRSTRLEN);
+    u_short port_num_client = ntohs(peer_sender_addr.sin_port);
 
-    if (!peer_receive_file(&peer_dest, client->file_to_receive)) {
+    printf("%s (%s:%i) is now connected to you (%s:%hu)\n", file_sender, peer_sender_ip_addr, port_num_client, peer_receiver.ip_addr, peer_receiver.port_num);
+
+    if (!peer_receive_file(&peer_receiver, client->file_to_receive)) {
         printf("Error: file not sent\n");
 
-        recv(peer_dest.socket_fd, payload, 0, MSG_WAITALL);
-        close(peer_dest.socket_fd);
-        printf("Connection closed with %s (%s:%hu)\n", file_sender, ip_addr_client, port_num_client);
+        recv(peer_receiver.socket_fd, payload, 0, MSG_WAITALL);
+        close(peer_receiver.socket_fd);
+        printf("Connection closed with %s (%s:%hu)\n", file_sender, peer_sender_ip_addr, port_num_client);
         return;
     }
 
-    recv(peer_dest.socket_fd, payload, 0, MSG_WAITALL);
-    close(peer_dest.socket_fd);
+    recv(peer_receiver.socket_fd, payload, 0, MSG_WAITALL);
+    close(peer_receiver.socket_fd);
 
     printf("Connection closed with %s\n", file_sender);
 }
@@ -315,25 +325,25 @@ void client_handle_file_accept_res(struct client *client, struct packet *res_pac
     printf("[SERVER]: %s accepted file transfer\n", res_packet->header.from);
 
     /* getting ip address and port to connect to the server */
-    char *ip_addr_peer_dest = strtok(res_packet->payload, ":");
-    char *port_num_peer_dest = strtok(NULL, "\n");
+    char *ip_addr_peer_receiver = strtok(res_packet->payload, ":");
+    char *port_num_peer_receiver = strtok(NULL, "\n");
 
     /* connecting to the server */
-    struct peer peer_src = peer_init_peer_src(ip_addr_peer_dest, port_num_peer_dest, client->nickname);
+    struct peer peer_sender = peer_init_peer_sender(ip_addr_peer_receiver, port_num_peer_receiver, client->nickname);
 
-    if (!peer_send_file(&peer_src, client->file_to_send)) {
+    if (!peer_send_file(&peer_sender, client->file_to_send)) {
         printf("Invalid filename\n");
 
-        struct packet packet = packet_init(peer_src.nickname, FILENAME, "", "", 0);
-        packet_send(&packet, peer_src.socket_fd);
+        struct packet packet = packet_init(peer_sender.nickname, FILENAME, "", "", 0);
+        packet_send(&packet, peer_sender.socket_fd);
 
-        close(peer_src.socket_fd);
+        close(peer_sender.socket_fd);
         printf("Connection closed with %s\n", res_packet->header.from);
 
         return;
     }
 
     /* closing connection */
-    close(peer_src.socket_fd);
+    close(peer_sender.socket_fd);
     printf("Connection closed with %s\n", res_packet->header.from);
 }

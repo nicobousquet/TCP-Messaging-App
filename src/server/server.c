@@ -10,50 +10,57 @@ struct server server_init(char *port) {
     struct server server;
     memset(&server, 0, sizeof(struct server));
 
-    struct addrinfo hints, *result, *rp;
+    struct addrinfo hints, *res, *p;
+
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
+    hints.ai_family = AF_INET;
 
-    if (getaddrinfo(NULL, port, &hints, &result) != 0) {
+    if (getaddrinfo(NULL, port, &hints, &res) != 0) {
         perror("getaddrinfo()");
         exit(EXIT_FAILURE);
     }
 
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
-        server.socket_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    for (p = res; p != NULL; p = p->ai_next) {
+        server.socket_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
 
         if (server.socket_fd == -1) {
             continue;
         }
 
-        if (bind(server.socket_fd, rp->ai_addr, rp->ai_addrlen) == 0) {
-            /* getting ip address  and port*/
-            struct sockaddr_in my_addr;
-            socklen_t len = sizeof(my_addr);
-            getsockname(server.socket_fd, (struct sockaddr *) &my_addr, &len);
-            inet_ntop(AF_INET, &my_addr.sin_addr, server.ip_addr, INET_ADDRSTRLEN);
-            server.port_num = ntohs(my_addr.sin_port);
-            server.chatroom_head = NULL;
-            server.user_head = NULL;
-
-            if ((listen(server.socket_fd, SOMAXCONN)) != 0) {
-                perror("listen()");
-                exit(EXIT_FAILURE);
-            }
-
-            printf("Listening on %s:%hu\n", server.ip_addr, server.port_num);
-
-            freeaddrinfo(result);
-
-            return server;
+        if (bind(server.socket_fd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(server.socket_fd);
+            continue;
         }
 
-        close(server.socket_fd);
+        break;
     }
 
-    perror("bind()");
-    exit(EXIT_FAILURE);
+    if (p == NULL) {
+        perror("Impossible to bind the socket to an address\n");
+        exit(EXIT_FAILURE);
+    }
+
+    freeaddrinfo(res);
+
+    if ((listen(server.socket_fd, SOMAXCONN)) == -1) {
+        perror("listen()");
+        exit(EXIT_FAILURE);
+    }
+
+    struct sockaddr_in server_addr;
+    socklen_t len = sizeof(struct sockaddr_in);
+    getsockname(server.socket_fd, (struct sockaddr *) &server_addr, &len);
+    inet_ntop(AF_INET, &server_addr.sin_addr, server.ip_addr, INET_ADDRSTRLEN);
+    server.port_num = ntohs(server_addr.sin_port);
+
+    printf("Server listening on %s:%hu\n", server.ip_addr, server.port_num);
+
+    server.chatroom_head = NULL;
+    server.user_head = NULL;
+
+    return server;
 }
 
 void server_add_chatroom_node(struct server *server, struct chatroom_node *to_add) {
@@ -275,7 +282,7 @@ void server_handle_unicast_send_req(struct server *server, struct packet *req_pa
             packet_send(&res_packet, dest_user->socket_fd);
 
             char from[NICK_LEN];
-            int len = snprintf(from,  NICK_LEN, "me@%s", dest_user->nickname);
+            int len = snprintf(from, NICK_LEN, "me@%s", dest_user->nickname);
 
             if (len >= NICK_LEN) {
                 printf("String truncated\n");
@@ -432,7 +439,7 @@ void server_handle_multicast_join_req(struct server *server, struct packet *req_
                         snprintf(payload, MSG_LEN, "%s has quit the channel", server->current_user->nickname);
 
                         char from[NICK_LEN];
-                        int len = snprintf(from,  NICK_LEN, "SERVER@%s", current_chatroom->name);
+                        int len = snprintf(from, NICK_LEN, "SERVER@%s", current_chatroom->name);
 
                         if (len >= NICK_LEN) {
                             printf("String truncated\n");
@@ -460,7 +467,7 @@ void server_handle_multicast_join_req(struct server *server, struct packet *req_
                 snprintf(payload, MSG_LEN, "%s has joined the channel", server->current_user->nickname);
 
                 char from[NICK_LEN];
-                int len = snprintf(from,  NICK_LEN, "SERVER@%s", chatroom_to_join->name);
+                int len = snprintf(from, NICK_LEN, "SERVER@%s", chatroom_to_join->name);
 
                 if (len >= NICK_LEN) {
                     printf("String truncated\n");
@@ -497,7 +504,7 @@ void server_handle_multicast_quit_req(struct server *server, struct packet *req_
                     snprintf(payload, MSG_LEN, "%s has quit the channel", server->current_user->nickname);
 
                     char from[NICK_LEN];
-                    int len = snprintf(from,  NICK_LEN,"SERVER@%s", chatroom->name);
+                    int len = snprintf(from, NICK_LEN, "SERVER@%s", chatroom->name);
 
                     if (len >= NICK_LEN) {
                         printf("String truncated\n");
@@ -572,7 +579,7 @@ void server_handle_multicast_send_req(struct server *server, struct packet *req_
             } else {
 
                 char from[NICK_LEN];
-                int len = snprintf(from, NICK_LEN,"%s@%s", server->current_user->nickname, chatroom->name);
+                int len = snprintf(from, NICK_LEN, "%s@%s", server->current_user->nickname, chatroom->name);
 
                 if (len >= NICK_LEN) {
                     printf("String truncated\n");

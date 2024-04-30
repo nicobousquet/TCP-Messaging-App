@@ -10,62 +10,70 @@
 #include <errno.h>
 #include <fcntl.h>
 
-struct peer peer_init_peer_dest(char *listening_addr, char *listening_port, char *nickname_user) {
-    struct peer peer_dest;
+struct peer peer_init_peer_receiver(char *listening_port, char *nickname_user) {
+    struct peer peer_receiver;
+    memset(&peer_receiver, 0, sizeof(struct peer));
 
-    memset(&peer_dest, 0, sizeof(struct peer));
+    struct addrinfo hints, *res, *p;
 
-    struct addrinfo hints, *result, *rp;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
+    hints.ai_family = AF_INET;
 
-    if (getaddrinfo(listening_addr, listening_port, &hints, &result) != 0) {
+    if (getaddrinfo(NULL, listening_port, &hints, &res) != 0) {
         perror("getaddrinfo()");
         exit(EXIT_FAILURE);
     }
 
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
-        peer_dest.socket_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    for (p = res; p != NULL; p = p->ai_next) {
+        peer_receiver.socket_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
 
-        if (peer_dest.socket_fd == -1) {
+        if (peer_receiver.socket_fd == -1) {
             continue;
         }
 
-        if (bind(peer_dest.socket_fd, rp->ai_addr, rp->ai_addrlen) == 0) {
-            /* getting ip address  and port*/
-            struct sockaddr_in my_addr;
-            socklen_t len = sizeof(my_addr);
-            getsockname(peer_dest.socket_fd, (struct sockaddr *) &my_addr, &len);
-            inet_ntop(AF_INET, &my_addr.sin_addr, peer_dest.ip_addr, INET_ADDRSTRLEN);
-            peer_dest.port_num = ntohs(my_addr.sin_port);
-            snprintf(peer_dest.nickname, NICK_LEN, "%s", nickname_user);
-            freeaddrinfo(result);
-
-            if ((listen(peer_dest.socket_fd, SOMAXCONN)) != 0) {
-                perror("listen()\n");
-                exit(EXIT_FAILURE);
-            }
-
-            printf("Listening on %s:%hu\n", peer_dest.ip_addr, peer_dest.port_num);
-
-            return peer_dest;
+        if (bind(peer_receiver.socket_fd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(peer_receiver.socket_fd);
+            continue;
         }
 
-        close(peer_dest.socket_fd);
+        break;
     }
 
-    perror("bind()");
-    exit(EXIT_FAILURE);
+    if (p == NULL) {
+        perror("Impossible to bind the socket to an address\n");
+        exit(EXIT_FAILURE);
+    }
+
+    freeaddrinfo(res);
+
+    if ((listen(peer_receiver.socket_fd, SOMAXCONN)) == -1) {
+        perror("listen()\n");
+        exit(EXIT_FAILURE);
+    }
+
+    /* getting ip address  and port*/
+    struct sockaddr_in server_addr;
+    socklen_t len = sizeof(struct sockaddr_in);
+    getsockname(peer_receiver.socket_fd, (struct sockaddr *) &server_addr, &len);
+    inet_ntop(AF_INET, &server_addr.sin_addr, peer_receiver.ip_addr, INET_ADDRSTRLEN);
+    peer_receiver.port_num = ntohs(server_addr.sin_port);
+
+    printf("Listening on %s:%hu\n", peer_receiver.ip_addr, peer_receiver.port_num);
+
+    snprintf(peer_receiver.nickname, NICK_LEN, "%s", nickname_user);
+
+    return peer_receiver;
 }
 
-int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
+int peer_receive_file(struct peer *peer_receiver, char *file_to_receive) {
     /* receiving file */
     printf("Receiving the file...\n");
 
     struct packet rec_packet;
 
-    packet_rec(&rec_packet, peer_dest->socket_fd);
+    packet_rec(&rec_packet, peer_receiver->socket_fd);
 
     /* if name of the file to send did not exist on the client's computer
      * file transfer is aborted */
@@ -98,7 +106,7 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
     /* while we did not receive all the data of the file */
     while (offset != size) {
 
-        packet_rec(&rec_packet, peer_dest->socket_fd);
+        packet_rec(&rec_packet, peer_receiver->socket_fd);
 
         /* writing received data in a new file */
         if (-1 == (ret = write(fd_new_file, rec_packet.payload, rec_packet.header.len_payload))) {
@@ -108,8 +116,8 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
 
         offset += ret;
 
-        struct packet res_packet = packet_init(peer_dest->nickname, FILE_ACK, "", "", 0);
-        packet_send(&res_packet, peer_dest->socket_fd);
+        struct packet res_packet = packet_init(peer_receiver->nickname, FILE_ACK, "", "", 0);
+        packet_send(&res_packet, peer_receiver->socket_fd);
 
         /* progress bar to show the advancement of downloading */
         char progress_bar[12] = {'[', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', ']'};
@@ -137,54 +145,59 @@ int peer_receive_file(struct peer *peer_dest, char *file_to_receive) {
     return 1;
 }
 
-struct peer peer_init_peer_src(char *hostname, char *port, char *nickname_user) {
-    struct peer peer_src;
+struct peer peer_init_peer_sender(char *peer_receiver_ip_addr, char *peer_receiver_port, char *nickname_user) {
+    struct peer peer_sender;
+    memset(&peer_sender, 0, sizeof(struct peer));
 
-    memset(&peer_src, 0, sizeof(struct peer));
+    struct addrinfo hints, *res, *p;
 
-    struct addrinfo hints, *result, *rp;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_socktype = SOCK_STREAM;
+    hints.ai_family = AF_INET;
 
-    if (getaddrinfo(hostname, port, &hints, &result) != 0) {
+    if (getaddrinfo(peer_receiver_ip_addr, peer_receiver_port, &hints, &res) == -1) {
         perror("getaddrinfo()");
         exit(EXIT_FAILURE);
     }
 
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
-        peer_src.socket_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    for (p = res; p != NULL; p = p->ai_next) {
+        peer_sender.socket_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
 
-        if (peer_src.socket_fd == -1) {
+        if (peer_sender.socket_fd == -1) {
             continue;
         }
 
-        if (connect(peer_src.socket_fd, rp->ai_addr, rp->ai_addrlen) != -1) {
-            /* getting ip address and port of connection */
-            struct sockaddr_in *sockaddr_in_ptr = (struct sockaddr_in *) rp->ai_addr;
-            socklen_t len = sizeof(struct sockaddr_in);
-            getsockname(peer_src.socket_fd, (struct sockaddr *) sockaddr_in_ptr, &len);
-            peer_src.port_num = ntohs(sockaddr_in_ptr->sin_port);
-            inet_ntop(AF_INET, &((struct sockaddr_in *) &sockaddr_in_ptr)->sin_addr, peer_src.ip_addr, INET_ADDRSTRLEN);
-            snprintf(peer_src.nickname, NICK_LEN, "%s", nickname_user);
-            printf("You (%s:%hu) are now connected to %s:%s\n", peer_src.ip_addr, peer_src.port_num, hostname, port);
-
-            break;
+        if (connect(peer_sender.socket_fd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(peer_sender.socket_fd);
+            continue;
         }
 
-        close(peer_src.socket_fd);
+        break;
     }
 
-    if (rp == NULL) {
-        perror("connect()");
+    if (p == NULL) {
+        perror("Impossible to connect to the other peer");
         exit(EXIT_FAILURE);
     }
 
-    freeaddrinfo(result);
+    freeaddrinfo(res);
 
-    return peer_src;
+    /* getting ip address and peer_receiver_port of connection */
+    struct sockaddr_in peer_sender_addr;
+    socklen_t len = sizeof(struct sockaddr_in);
+
+    getsockname(peer_sender.socket_fd, (struct sockaddr *) &peer_sender_addr, &len);
+    peer_sender.port_num = ntohs(peer_sender_addr.sin_port);
+    inet_ntop(AF_INET, &peer_sender_addr.sin_addr, peer_sender.ip_addr, INET_ADDRSTRLEN);
+
+    printf("You (%s:%hu) are now connected to %s:%s\n", peer_sender.ip_addr, peer_sender.port_num, peer_receiver_ip_addr, peer_receiver_port);
+
+    snprintf(peer_sender.nickname, NICK_LEN, "%s", nickname_user);
+
+    return peer_sender;
 }
 
-int peer_send_file(struct peer *peer_src, char *file_to_send) {
+int peer_send_file(struct peer *peer_sender, char *file_to_send) {
     /* sending file */
     printf("Sending the file...\n");
     struct stat sb;
@@ -216,8 +229,8 @@ int peer_send_file(struct peer *peer_src, char *file_to_send) {
     snprintf(payload, MSG_LEN, "%lu", size);
 
     /* sending the size of the file to be sent */
-    struct packet packet = packet_init(peer_src->nickname, FILE_SEND, "", payload, strlen(payload));
-    packet_send(&packet, peer_src->socket_fd);
+    struct packet packet = packet_init(peer_sender->nickname, FILE_SEND, "", payload, strlen(payload));
+    packet_send(&packet, peer_sender->socket_fd);
 
 
     long offset = 0;
@@ -239,11 +252,11 @@ int peer_send_file(struct peer *peer_src, char *file_to_send) {
             break;
         }
 
-        packet_set(&packet, peer_src->nickname, FILE_SEND, "", payload, ret);
-        packet_send(&packet, peer_src->socket_fd);
+        packet_set(&packet, peer_sender->nickname, FILE_SEND, "", payload, ret);
+        packet_send(&packet, peer_sender->socket_fd);
 
         /* waiting data to be read by dest user in the socket file*/
-        packet_rec(&packet, peer_src->socket_fd);
+        packet_rec(&packet, peer_sender->socket_fd);
 
         if (packet.header.type != FILE_ACK) {
             printf("Problem in reception\n");

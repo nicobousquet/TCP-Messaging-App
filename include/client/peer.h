@@ -12,12 +12,12 @@ struct peer {
     char nickname[NICK_LEN];
 };
 
-struct peer peer_init_peer_dest(char *listening_addr, char *listening_port, char *nickname_user);
+struct peer peer_init_peer_receiver(char *listening_port, char *nickname_user);
 
-int peer_receive_file(struct peer *peer_dest, char *file_to_receive);
+int peer_receive_file(struct peer *peer_receiver, char *file_to_receive);
 
-struct peer peer_init_peer_src(char *hostname, char *port, char *nickname_user);
+struct peer peer_init_peer_sender(char *peer_receiver_ip_addr, char *peer_receiver_port, char *nickname_user);
 
-int peer_send_file(struct peer *peer_src, char *file_to_send);
+int peer_send_file(struct peer *peer_sender, char *file_to_send);
 
 #endif //PEER_H
