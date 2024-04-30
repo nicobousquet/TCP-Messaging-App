@@ -176,34 +176,30 @@ void client_send_multicast_quit_req(struct client *client, char *name_channel) {
 }
 
 /* extracting name of file to send */
-static void extract_filename(char *tmp, char *sub_path) {
-    tmp = strtok(tmp, "/");
-    snprintf(sub_path, FILENAME_LEN, "%s", tmp);
+static char *get_file_from_path(char *file, char *path) {
+    char *tmp = strtok(path, "/");
 
-    /* extracting the name of the file from the whole path */
+    /* extracting the name of the tmp from the whole path */
     while ((tmp = strtok(NULL, "/")) != NULL) {
-        memset(sub_path, 0, FILENAME_LEN);
-        snprintf(sub_path, FILENAME_LEN, "%s", tmp);
+        snprintf(file, FILENAME_LEN, "%s", tmp);
     }
 }
 
 void client_send_file_req(struct client *client, char *nickname_dest, char *filename) {
-    /* getting path of file to send */
+    /* getting path of path to send */
     if (nickname_dest == NULL || filename == NULL) {
         printf("Invalid arguments\n");
         return;
     }
 
-    snprintf(client->file_to_send, FILENAME_LEN, "%s", filename + 1);
-    client->file_to_send[strlen(client->file_to_send) - 1] = '\0';
+    char path[FILENAME_LEN];
+    snprintf(path, FILENAME_LEN, "%s", filename + 1);
+    path[strlen(path) - 1] = '\0';
 
-    /* extracting name of file to send from the path */
-    char tmp[FILENAME_LEN];
-    snprintf(tmp, FILENAME_LEN, "%s", client->file_to_send);
+    snprintf(client->file_to_send, FILENAME_LEN, "%s", path);
+
     char file[FILENAME_LEN];
-
-    /* writing only name of file to send and not the whole path into the payload */
-    extract_filename(tmp, file);
+    get_file_from_path(file, path);
 
     struct packet req_packet = packet_init(client->nickname, FILE_REQUEST, nickname_dest, file, strlen(file));
     packet_send(&req_packet, client->socket_fd);
