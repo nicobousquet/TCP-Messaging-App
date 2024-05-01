@@ -66,6 +66,7 @@ struct server server_init(char *port) {
 void server_add_chatroom_node(struct server *server, struct chatroom_node *to_add) {
     to_add->next = server->chatroom_head;
     server->chatroom_head = to_add;
+    server->num_chatrooms++;
 }
 
 void server_remove_chatroom_node(struct server *server, struct chatroom_node *to_remove) {
