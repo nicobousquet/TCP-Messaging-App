@@ -69,11 +69,11 @@ int main(int argc, char *argv[]) {
             /* If listening socket is active => accept new incoming connection */
             if (pollfds[i].fd == server.socket_fd && pollfds[i].revents & POLLIN) {
                 /* accept new connection and retrieve new socket file descriptor */
-                struct sockaddr clientAddr;
-                socklen_t size = sizeof(clientAddr);
+                struct sockaddr_in clientAddr;
+                socklen_t len = sizeof(clientAddr);
                 int socket_fd = -1;
 
-                if (-1 == (socket_fd = accept(server.socket_fd, &clientAddr, &size))) {
+                if (-1 == (socket_fd = accept(server.socket_fd, (struct sockaddr *) &clientAddr, &len))) {
                     perror("Accept");
                 }
 
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
                     time_t ltime;
                     time(&ltime);
 
-                    struct user_node *user = user_node_init(socket_fd, inet_ntoa(((struct sockaddr_in *) &clientAddr)->sin_addr), ntohs(((struct sockaddr_in *) &clientAddr)->sin_port), "", asctime(localtime(&ltime)));
+                    struct user_node *user = user_node_init(socket_fd, inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port), "", asctime(localtime(&ltime)));
                     printf("Client (%s:%hu) connected on socket %i.\n", user->ip_addr, user->port_num, user->socket_fd);
                     server_add_user_node(&server, user);
 
@@ -164,7 +164,7 @@ int main(int argc, char *argv[]) {
                 }
 
                 switch (req_packet.header.type) {
-                        /* if user wants to change/create nickname */
+                    /* if user wants to change/create nickname */
                     case NICKNAME_NEW:
                         server_handle_nickname_new_req(&server, &req_packet);
                         break;

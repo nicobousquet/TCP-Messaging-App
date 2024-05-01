@@ -432,20 +432,20 @@ void server_handle_multicast_join_req(struct server *server, struct packet *req_
                         packet_send(&res_packet, server->current_user->socket_fd);
 
                         server_remove_chatroom_node(server, current_chatroom);
-                    }
+                    } else {
+                        for (struct user_node *current_user = current_chatroom->user_head; current_user != NULL; current_user = current_user->next_in_chatroom) {
+                            snprintf(payload, MSG_LEN, "%s has quit the channel", server->current_user->nickname);
 
-                    for (struct user_node *current_user = current_chatroom->user_head; current_user != NULL; current_user = current_user->next_in_chatroom) {
-                        snprintf(payload, MSG_LEN, "%s has quit the channel", server->current_user->nickname);
+                            char from[NICK_LEN];
+                            int len = snprintf(from, NICK_LEN, "SERVER@%s", current_chatroom->name);
 
-                        char from[NICK_LEN];
-                        int len = snprintf(from, NICK_LEN, "SERVER@%s", current_chatroom->name);
+                            if (len >= NICK_LEN) {
+                                printf("String truncated\n");
+                            }
 
-                        if (len >= NICK_LEN) {
-                            printf("String truncated\n");
+                            res_packet = packet_init(from, req_packet->header.type, req_packet->header.infos, payload, strlen(payload));
+                            packet_send(&res_packet, current_user->socket_fd);
                         }
-
-                        res_packet = packet_init(from, req_packet->header.type, req_packet->header.infos, payload, strlen(payload));
-                        packet_send(&res_packet, current_user->socket_fd);
                     }
                 }
             }
