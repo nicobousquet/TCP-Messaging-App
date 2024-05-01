@@ -3,6 +3,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+struct header header_init(unsigned long len_payload, char *from, enum messageType type, char *infos) {
+    struct header header;
+    header_set(&header, len_payload, from, type, infos);
+
+    return header;
+}
+
 void header_set(struct header *header, unsigned long len_payload, char *from, enum messageType type, char *infos) {
     if (from != NULL) {
         memset(header->from, 0, NICK_LEN);
@@ -17,13 +24,6 @@ void header_set(struct header *header, unsigned long len_payload, char *from, en
     }
 
     header->len_payload = len_payload;
-}
-
-struct header header_init(unsigned long len_payload, char *from, enum messageType type, char *infos) {
-    struct header header;
-    header_set(&header, len_payload, from, type, infos);
-
-    return header;
 }
 
 void header_send(struct header *header, int socket_fd) {

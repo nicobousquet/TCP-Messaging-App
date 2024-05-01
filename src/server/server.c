@@ -73,7 +73,7 @@ void server_remove_chatroom_node(struct server *server, struct chatroom_node *to
 
     if (server->chatroom_head == to_remove) {
         server->chatroom_head = to_remove->next;
-        chatroom_free(to_remove);
+        chatroom_node_free(to_remove);
         server->num_chatrooms--;
 
         return;
@@ -83,7 +83,7 @@ void server_remove_chatroom_node(struct server *server, struct chatroom_node *to
 
         if (current->next == to_remove) {
             current->next = to_remove->next;
-            chatroom_free(to_remove);
+            chatroom_node_free(to_remove);
             server->num_chatrooms--;
 
             return;
@@ -357,7 +357,7 @@ void server_handle_multicast_create_req(struct server *server, struct packet *re
     }
 
     /* creating a new chatroom_node */
-    struct chatroom_node *new_chatroom = chatroom_init(req_packet->header.infos, server->current_user);
+    struct chatroom_node *new_chatroom = chatroom_node_init(req_packet->header.infos, server->current_user);
     server_add_chatroom_node(server, new_chatroom);
 
     char payload[MSG_LEN];
@@ -492,7 +492,7 @@ void server_handle_multicast_quit_req(struct server *server, struct packet *req_
 
         if (chatroom != NULL) {
 
-            if (chatroom_is_user_in(chatroom, server->current_user)) {
+            if (chatroom_node_is_user_in(chatroom, server->current_user)) {
 
                 chatroom_node_remove_user_node(chatroom, server->current_user);
 

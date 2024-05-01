@@ -10,14 +10,14 @@ struct chatroom_node {
     struct chatroom_node *next;
 };
 
-struct chatroom_node *chatroom_init(char *name_chatroom, struct user_node *first_user);
+struct chatroom_node *chatroom_node_init(char *name_chatroom, struct user_node *first_user);
 
-void chatroom_free(struct chatroom_node *chatroom);
+void chatroom_node_free(struct chatroom_node *chatroom);
 
 void chatroom_node_add_user_node(struct chatroom_node *chatroom, struct user_node *to_add);
 
 void chatroom_node_remove_user_node(struct chatroom_node *chatroom, struct user_node *to_remove);
 
-int chatroom_is_user_in(struct chatroom_node *chatroom, struct user_node *user);
+int chatroom_node_is_user_in(struct chatroom_node *chatroom, struct user_node *user);
 
 #endif //CHATROOM_H
