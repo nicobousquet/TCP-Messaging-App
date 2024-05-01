@@ -359,7 +359,6 @@ void server_handle_multicast_create_req(struct server *server, struct packet *re
     /* creating a new chatroom_node */
     struct chatroom_node *new_chatroom = chatroom_init(req_packet->header.infos, server->current_user);
     server_add_chatroom_node(server, new_chatroom);
-    server->num_chatrooms++;
 
     char payload[MSG_LEN];
     snprintf(payload, MSG_LEN, "You have created channel %s", new_chatroom->name);
