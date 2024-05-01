@@ -6,6 +6,8 @@
 void chatroom_node_add_user_node(struct chatroom_node *chatroom, struct user_node *to_add) {
     to_add->next_in_chatroom = chatroom->user_head;
     chatroom->user_head = to_add;
+    chatroom->num_users++;
+    to_add->is_in_chatroom = 1;
 }
 
 void chatroom_node_remove_user_node(struct chatroom_node *chatroom, struct user_node *to_remove) {
@@ -13,6 +15,7 @@ void chatroom_node_remove_user_node(struct chatroom_node *chatroom, struct user_
     if (chatroom->user_head == to_remove) {
         chatroom->user_head = to_remove->next_in_chatroom;
         chatroom->num_users--;
+        to_remove->is_in_chatroom = 0;
 
         return;
     }
@@ -22,6 +25,7 @@ void chatroom_node_remove_user_node(struct chatroom_node *chatroom, struct user_
         if (current->next_in_chatroom == to_remove) {
             current->next_in_chatroom = to_remove->next_in_chatroom;
             chatroom->num_users--;
+            to_remove->is_in_chatroom = 0;
 
             return;
         }

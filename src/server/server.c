@@ -93,6 +93,7 @@ void server_remove_chatroom_node(struct server *server, struct chatroom_node *to
 void server_add_user_node(struct server *server, struct user_node *to_add) {
     to_add->next_in_server = server->user_head;
     server->user_head = to_add;
+    server->num_users++;
 }
 
 void server_remove_user_node(struct server *server, struct user_node *to_remove) {
@@ -322,7 +323,6 @@ void server_handle_multicast_create_req(struct server *server, struct packet *re
 
     if (chatroom != NULL) {
         chatroom_node_remove_user_node(chatroom, server->current_user);
-        server->current_user->is_in_chatroom = 0;
 
         char payload[MSG_LEN];
         snprintf(payload, MSG_LEN, "You have quit the channel %s", chatroom->name);
@@ -417,7 +417,6 @@ void server_handle_multicast_join_req(struct server *server, struct packet *req_
                 } else {
 
                     chatroom_node_remove_user_node(current_chatroom, server->current_user);
-                    server->current_user->is_in_chatroom = 0;
 
                     char payload[MSG_LEN];
                     snprintf(payload, MSG_LEN, "You have quit the channel %s", current_chatroom->name);
@@ -453,8 +452,6 @@ void server_handle_multicast_join_req(struct server *server, struct packet *req_
 
             /* joining chatroom_node */
             chatroom_node_add_user_node(chatroom_to_join, server->current_user);
-            server->current_user->is_in_chatroom = 1;
-            chatroom_to_join->num_users++;
 
             char payload[MSG_LEN];
             snprintf(payload, MSG_LEN, "You have joined %s", req_packet->header.infos);
@@ -513,8 +510,6 @@ void server_handle_multicast_quit_req(struct server *server, struct packet *req_
                     struct packet res_packet = packet_init(from, req_packet->header.type, req_packet->header.infos, payload, strlen(payload));
                     packet_send(&res_packet, current->socket_fd);
                 }
-
-                server->current_user->is_in_chatroom = 0;
 
                 char payload[MSG_LEN];
                 snprintf(payload, MSG_LEN, "You have quit the channel %s", chatroom->name);

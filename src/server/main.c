@@ -86,7 +86,6 @@ int main(int argc, char *argv[]) {
                     struct user_node *user = user_node_init(socket_fd, inet_ntoa(((struct sockaddr_in *) &clientAddr)->sin_addr), ntohs(((struct sockaddr_in *) &clientAddr)->sin_port), "", asctime(localtime(&ltime)));
                     printf("Client (%s:%hu) connected on socket %i.\n", user->ip_addr, user->port_num, user->socket_fd);
                     server_add_user_node(&server, user);
-                    server.num_users++;
 
                     /* store new file descriptor in available slot in the array of struct pollfd set .events to POLLIN */
                     for (int j = 1; j < NUM_MAX_USERS + 1; j++) {
