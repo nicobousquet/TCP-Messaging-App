@@ -7,8 +7,7 @@
 #include <netdb.h>
 
 struct server server_init(char *port) {
-    struct server server;
-    memset(&server, 0, sizeof(struct server));
+    struct server server = {0};
 
     struct addrinfo hints, *res, *p;
 

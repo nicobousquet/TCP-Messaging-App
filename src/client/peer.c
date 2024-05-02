@@ -11,8 +11,7 @@
 #include <fcntl.h>
 
 struct peer peer_init_peer_receiver(char *listening_port, char *nickname_user) {
-    struct peer peer_receiver;
-    memset(&peer_receiver, 0, sizeof(struct peer));
+    struct peer peer_receiver = {0};
 
     struct addrinfo hints, *res, *p;
 
@@ -146,8 +145,7 @@ int peer_receive_file(struct peer *peer_receiver, char *file_to_receive) {
 }
 
 struct peer peer_init_peer_sender(char *peer_receiver_ip_addr, char *peer_receiver_port, char *nickname_user) {
-    struct peer peer_sender;
-    memset(&peer_sender, 0, sizeof(struct peer));
+    struct peer peer_sender = {0};
 
     struct addrinfo hints, *res, *p;
 
@@ -200,8 +198,7 @@ struct peer peer_init_peer_sender(char *peer_receiver_ip_addr, char *peer_receiv
 int peer_send_file(struct peer *peer_sender, char *file_to_send) {
     /* sending file */
     printf("Sending the file...\n");
-    struct stat sb;
-    memset(&sb, 0, sizeof(struct stat));
+    struct stat sb = {0};
     stat(file_to_send, &sb);
 
     if (!S_ISREG(sb.st_mode)) {
@@ -224,8 +221,8 @@ int peer_send_file(struct peer *peer_sender, char *file_to_send) {
     /* getting the size of the file to send */
     long size = sb.st_size;
 
-    char payload[MSG_LEN];
-    memset(payload, 0, MSG_LEN);
+    char payload[MSG_LEN] = {0};
+
     snprintf(payload, MSG_LEN, "%lu", size);
 
     /* sending the size of the file to be sent */

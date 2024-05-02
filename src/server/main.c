@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
 
                 server.current_user = current_user;
 
-                struct packet req_packet;
+                struct packet req_packet = {0};
 
                 if (packet_rec(&req_packet, server.current_user->socket_fd) <= 0) {
                     server_disconnect_user(&server, server.current_user);

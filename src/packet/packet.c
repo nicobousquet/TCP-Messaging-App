@@ -5,8 +5,7 @@
 #include <stdlib.h>
 
 struct packet packet_init(char *from, enum messageType type, char *infos, char *payload, unsigned long payload_length) {
-    struct packet packet;
-    memset(&packet, 0, sizeof(struct packet));
+    struct packet packet = {0};
     packet_set(&packet, from, type, infos, payload, payload_length);
 
     return packet;

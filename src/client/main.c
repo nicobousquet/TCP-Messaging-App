@@ -43,8 +43,7 @@ int main(int argc, char *argv[]) {
             /* if data comes from the keyboard */
             if (pollfds[i].fd == STDIN_FILENO && pollfds[i].revents & POLLIN) {
                 /* putting data into buffer */
-                char buffer[MSG_LEN];
-                memset(buffer, 0, MSG_LEN);
+                char buffer[MSG_LEN] = {0};
 
                 int n = 0;
                 char c;

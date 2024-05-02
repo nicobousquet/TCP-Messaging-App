@@ -9,8 +9,7 @@
 
 /* Connecting to server socket */
 struct client client_init(char *server_ip_addr, char *server_port) {
-    struct client client;
-    memset(&client, 0, sizeof(struct client));
+    struct client client = {0};
 
     struct addrinfo hints, *res, *p;
 
@@ -239,8 +238,8 @@ static void file_accept_res(struct client *client, char *file_sender) {
     struct packet res_packet = packet_init(client->nickname, FILE_ACCEPT, file_sender, payload, strlen(payload));
     packet_send(&res_packet, client->socket_fd);
 
-    struct sockaddr_in peer_sender_addr;
-    memset(&peer_sender_addr, 0, sizeof(struct sockaddr_in));
+    struct sockaddr_in peer_sender_addr = {0};
+
     socklen_t len = sizeof(struct sockaddr_in);
 
     /* accepting connection from client */
@@ -290,8 +289,7 @@ void client_handle_file_request_res(struct client *client, struct packet *req_pa
 
     /* loop waiting for user response for file request */
     while (1) {
-        char buffer[MSG_LEN];
-        memset(buffer, 0, MSG_LEN);
+        char buffer[MSG_LEN] = {0};
 
         int n = 0;
         char c;
