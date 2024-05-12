@@ -179,9 +179,9 @@ static void get_filename_from_path(char *file, char *path) {
     char *tmp = strtok(path, "/");
 
     /* extracting the name of the tmp from the whole path */
-    while ((tmp = strtok(NULL, "/")) != NULL) {
+    do {
         snprintf(file, FILENAME_LEN, "%s", tmp);
-    }
+    } while ((tmp = strtok(NULL, "/")) != NULL);
 }
 
 void client_send_file_req(struct client *client, char *nickname_dest, char *filename) {
