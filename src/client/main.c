@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
 
                 switch (res_packet.header.type) {
 
-                        /* changing nickname */
+                    /* changing nickname */
                     case NICKNAME_NEW:
                         client_handle_nickname_new_res(&client, &res_packet);
                         printf("[%s]: %s\n", res_packet.header.from, res_packet.payload);
