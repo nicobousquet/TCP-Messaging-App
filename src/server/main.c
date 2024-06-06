@@ -111,35 +111,30 @@ int main(int argc, char *argv[]) {
                 /* Set .revents of listening socket back to default */
                 pollfds[i].revents = 0;
             } else if (pollfds[i].fd != server.socket_fd && pollfds[i].revents & POLLHUP) {
-                /* getting the user which is doing the request */
-                struct user_node *current_user = NULL;
 
-                for (current_user = server.user_head; current_user != NULL; current_user = current_user->next_in_server) {
+                for (struct user_node *current_user = server.user_head; current_user != NULL; current_user = current_user->next_in_server) {
                     if (current_user->socket_fd == pollfds[i].fd) {
+                        /* If a socket previously created to communicate with a client detects a disconnection from the client side */
+                        server_disconnect_user(&server, current_user);
+                        /* Close socket and set struct pollfd back to default */
+                        close(pollfds[i].fd);
+                        pollfds[i].fd = -1;
+                        pollfds[i].events = 0;
+                        pollfds[i].revents = 0;
+
                         break;
                     }
                 }
-
-                /* If a socket previously created to communicate with a client detects a disconnection from the client side */
-                server_disconnect_user(&server, current_user);
-
-                /* Close socket and set struct pollfd back to default */
-                close(pollfds[i].fd);
-                pollfds[i].fd = -1;
-                pollfds[i].events = 0;
-                pollfds[i].revents = 0;
             } else if (pollfds[i].fd != server.socket_fd && pollfds[i].revents & POLLIN) {
                 /* If a socket different from the listening socket is active */
                 /* getting the user which is doing the request */
-                struct user_node *current_user = NULL;
 
-                for (current_user = server.user_head; current_user != NULL; current_user = current_user->next_in_server) {
+                for (struct user_node *current_user = server.user_head; current_user != NULL; current_user = current_user->next_in_server) {
                     if (current_user->socket_fd == pollfds[i].fd) {
+                        server.current_user = current_user;
                         break;
                     }
                 }
-
-                server.current_user = current_user;
 
                 struct packet req_packet = {0};
 
@@ -149,6 +144,7 @@ int main(int argc, char *argv[]) {
                     pollfds[i].fd = -1;
                     pollfds[i].events = 0;
                     pollfds[i].revents = 0;
+
                     break;
                 }
 
