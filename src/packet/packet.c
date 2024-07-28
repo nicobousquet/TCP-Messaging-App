@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-struct packet packet_init(char *from, enum messageType type, char *infos, char *payload, unsigned long payload_length) {
+struct packet packet_init(char *from, enum message_type type, char *infos, char *payload, unsigned long payload_length) {
     struct packet packet = {0};
     packet_set(&packet, from, type, infos, payload, payload_length);
 
@@ -12,7 +12,7 @@ struct packet packet_init(char *from, enum messageType type, char *infos, char *
 }
 
 /* copying information in header */
-void packet_set(struct packet *packet, char *from, enum messageType type, char *infos, char *payload, unsigned long payload_length) {
+void packet_set(struct packet *packet, char *from, enum message_type type, char *infos, char *payload, unsigned long payload_length) {
     header_set(&packet->header, payload_length, from, type, infos);
 
     if (payload != NULL) {
