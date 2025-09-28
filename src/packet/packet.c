@@ -26,7 +26,6 @@ void packet_send(struct packet *packet, int socket_fd) {
     header_send(&packet->header, socket_fd);
 
     if (packet->header.len_payload != 0) {
-
         if (send(socket_fd, packet->payload, packet->header.len_payload, 0) == -1) {
             perror("packet_send");
             exit(EXIT_FAILURE);
@@ -35,7 +34,6 @@ void packet_send(struct packet *packet, int socket_fd) {
 }
 
 ssize_t packet_rec(struct packet *packet, int socket_fd) {
-
     memset(packet, 0, sizeof(struct packet));
 
     ssize_t ret = header_rec(&packet->header, socket_fd);

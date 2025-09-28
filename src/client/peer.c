@@ -104,7 +104,6 @@ int peer_receive_file(struct peer *peer_receiver, char *file_to_receive) {
 
     /* while we did not receive all the data of the file */
     while (offset != size) {
-
         packet_rec(&rec_packet, peer_receiver->socket_fd);
 
         /* writing received data in a new file */
@@ -209,7 +208,6 @@ int peer_send_file(struct peer *peer_sender, char *file_to_send) {
     int file_fd = open(file_to_send, O_RDONLY);
 
     if (file_fd == -1) {
-
         if (errno == ENOENT) {
             return 0;
         }

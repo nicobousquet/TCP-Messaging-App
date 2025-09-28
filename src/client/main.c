@@ -39,7 +39,6 @@ int main(int argc, char *argv[]) {
         }
 
         for (int i = 0; i < NUM_FDS; i++) {
-
             /* if data comes from the keyboard */
             if (pollfds[i].fd == STDIN_FILENO && pollfds[i].revents & POLLIN) {
                 /* putting data into buffer */
@@ -62,34 +61,25 @@ int main(int argc, char *argv[]) {
                 if (first_word != NULL) {
                     if (strcmp(first_word, "/nick") == 0) {
                         client_send_nickname_new_req(&client, strtok(NULL, " "));
-
                     } else if (strcmp(first_word, "/help") == 0) {
                         client_help();
-
                     } else if (strcmp(first_word, "/who") == 0) {
                         client_send_nickname_list_req(&client);
-
                     } else if (strcmp(first_word, "/whois") == 0) {
                         client_send_nickname_infos_req(&client, strtok(NULL, ""));
-
                     } else if (strcmp(first_word, "/msgall") == 0) {
                         client_send_broadcast_send_req(&client, strtok(NULL, ""));
-
                     } else if (strcmp(first_word, "/msg") == 0) {
                         char *nickname_dest = strtok(NULL, " ");
                         char *payload = strtok(NULL, "");
 
                         client_send_unicast_send_req(&client, nickname_dest, payload);
-
                     } else if (strcmp(first_word, "/create") == 0) {
                         client_send_multicast_create_req(&client, strtok(NULL, ""));
-
                     } else if (strcmp(first_word, "/channel_list") == 0) {
                         client_send_multicast_list_req(&client);
-
                     } else if (strcmp(first_word, "/join") == 0) {
                         client_send_multicast_join_req(&client, strtok(NULL, ""));
-
                     } else if (strcmp(first_word, "/quit") == 0) {
                         char *name_channel = strtok(NULL, "");
                         if (name_channel != NULL) {
@@ -98,13 +88,11 @@ int main(int argc, char *argv[]) {
                             client_disconnect_from_server(pollfds);
                             exit(EXIT_SUCCESS);
                         }
-
                     } else if (strcmp(first_word, "/send") == 0) {
                         char *nickname_dest = strtok(NULL, " ");
                         char *filename = strtok(NULL, "");
 
                         client_send_file_req(&client, nickname_dest, filename);
-
                     } else {
                         client_send_multicast_send_req(&client, strtok(NULL, ""), first_word);
                     }
@@ -112,7 +100,7 @@ int main(int argc, char *argv[]) {
 
                 pollfds[i].revents = 0;
             }
-                /* if data comes from the server */
+            /* if data comes from the server */
             else if (pollfds[i].fd != STDIN_FILENO && pollfds[i].revents & POLLIN) {
                 /* Receiving structure */
                 struct packet res_packet;
@@ -124,7 +112,6 @@ int main(int argc, char *argv[]) {
                 }
 
                 switch (res_packet.header.type) {
-
                     /* changing nickname */
                     case NICKNAME_NEW:
                         client_handle_nickname_new_res(&client, &res_packet);
@@ -132,13 +119,13 @@ int main(int argc, char *argv[]) {
                         pollfds[i].revents = 0;
                         break;
 
-                        /* if receiving a file request */
+                    /* if receiving a file request */
                     case FILE_REQUEST:
                         client_handle_file_request_res(&client, &res_packet);
                         pollfds[i].revents = 0;
                         break;
 
-                        /* if receiving a file accept */
+                    /* if receiving a file accept */
                     case FILE_ACCEPT:
                         client_handle_file_accept_res(&client, &res_packet);
                         pollfds[i].revents = 0;
